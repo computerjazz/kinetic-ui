@@ -238,8 +238,10 @@ class CardStack extends Component {
         <PanGestureHandler
           onGestureEvent={event([{
             nativeEvent: ({ translationX: x, velocityX, state }) => block([
-              set(this.translationX, x),
-              set(this.velocity, velocityX),
+              cond(eq(this.gestureState, State.ACTIVE), [
+                set(this.translationX, x),
+                set(this.velocity, velocityX),
+              ])
             ])
           }])}
           onHandlerStateChange={event([{
@@ -259,6 +261,7 @@ class CardStack extends Component {
                   [
                     set(this.prevTrans, add(this.translationX, this.prevTrans)),
                     set(this.translationX, 0),
+                    debug('END velocity:', this.velocity),
                     cond(clockRunning(this.clock), stopClock(this.clock)),
                     cond(greaterThan(abs(this.velocity), 0), [
                       set(this.animConfig.toValue, this.velocity),

@@ -33,10 +33,15 @@ const {
   sin,
   color,
   abs,
-  modulo
+  modulo,
+  round,
 } = Animated;
 
 import BackButton from '../components/BackButton'
+
+const size = width / 2 
+const numCards = 7
+const maxIndex = numCards - 1
 
 class Card extends Component {
 
@@ -46,14 +51,15 @@ class Card extends Component {
     this.translationY = new Value(0)
     this.gestureState = new Value(State.UNDETERMINED)
 
+
     this._iy = Animated.interpolate(this.translationY, {
-      inputRange: [-height / 2, 0, height / 2],
+      inputRange: [-size, 0, size],
       outputRange: [180, 0, -180],
       extrapolate: Animated.Extrapolate.CLAMP,
     })
 
     this._ix = Animated.interpolate(this.translationX, {
-      inputRange: [-width, 0, width],
+      inputRange: [-size, 0, size],
       outputRange: [-180, 0, 180],
       extrapolate: Animated.Extrapolate.CLAMP,
     })
@@ -67,18 +73,18 @@ class Card extends Component {
     const nandFlip = not(and(xPast90, yPast90))
     const hasFlipped = and(orFlip, nandFlip)
 
-    const numCards = 7
-    const maxIndex = numCards - 1
-    const colorMultiplier = 255 / (numCards - 1)
 
-    const index = new Value(0)
-    const colorIndex = modulo(sub(maxIndex, add(index, maxIndex)), numCards)
+    const colorMultiplier = 255 / maxIndex
 
-    const c = multiply(cond(hasFlipped, modulo(add(colorIndex, 1), numCards), colorIndex), colorMultiplier)
-    const r = c
-    const g = abs(sub(128, c))
-    const b = sub(255, c)
-    this.color = color(r, g, b, 0.9)
+    const i = new Value(0)
+    const currentIndex = cond(hasFlipped, add(i, 1), i)
+    const colorIndex = sub(maxIndex, modulo(add(currentIndex, maxIndex), numCards))
+
+    const c = multiply(colorIndex, colorMultiplier)
+    const r = round(c)
+    const g = round(abs(sub(128, c)))
+    const b = round(sub(255, c))
+    this.color = color(r, g, b)
 
 
     this.perspective = new Value(850)
@@ -95,7 +101,7 @@ class Card extends Component {
       mass: 1,
       stiffness: 50.296,
       overshootClamping: false,
-      toValue: 0,
+      toValue: new Value(0),
       restSpeedThreshold: 0.001,
       restDisplacementThreshold: 0.001,
     };
@@ -192,16 +198,21 @@ class Card extends Component {
         onHandlerStateChange={event([{ nativeEvent: { state: this.gestureState } }])}
       >
 
-        <Animated.View style={{ flex: 1, backgroundColor: 'seashell', alignItems: 'center', justifyContent: 'center' }}>
-
+        <Animated.View style={{ 
+          flex: 1, 
+          backgroundColor: 'seashell', 
+          alignItems: 'center', 
+          justifyContent: 'center' 
+        }}
+        >
           <Animated.View
             style={{
               opacity: 0.9,
               justifyContent: 'center',
               alignItems: 'center',
-              width: width / 2,
+              width: size,
+              height: size,
               backgroundColor: this.color,
-              height: width / 2,
               borderRadius: 5,
               transform: [
                 {

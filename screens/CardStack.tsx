@@ -40,7 +40,6 @@ const {
 
 const numCards = 7
 const tickHeight = height * 0.75
-
 class CardStack extends Component {
 
   constructor() {
@@ -102,12 +101,17 @@ class CardStack extends Component {
         ]
 
         const resetSpring = [
+
           set(this.sprState.time, 0),
           set(this.sprState.position, 0),
           set(this.sprState.finished, 0),
           set(this.sprState.velocity, 0),
           set(this.isSpring, 0),
           set(this.prevTrans, add(this._temp, this.prevTrans)),
+          debug('reset: pos', this.sprState.position),
+          debug('reset: temp', this._temp),
+          debug('reset: prevtrans', this.prevTrans),
+          debug('reset: translationY', this.translationY),
         ]
 
         const runClock = cond(clockRunning(this.clock), [
@@ -171,7 +175,6 @@ class CardStack extends Component {
         // `colorIndex` compensates for this
         const maxIndex = arr.length - 1
         const colorIndex = maxIndex - (i + maxIndex) % (arr.length)
-
         return {
           color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
           scale: scaleXY,
@@ -216,8 +219,11 @@ class CardStack extends Component {
         <PanGestureHandler
           onGestureEvent={event([{
             nativeEvent: ({ translationY: y, velocityY, state }) => block([
-              set(this.translationY, y),
-              set(this.velocity, velocityY),
+              cond(eq(this.gestureState, State.ACTIVE), [
+
+                set(this.translationY, y),
+                set(this.velocity, velocityY),
+              ])
             ])
           }])}
           onHandlerStateChange={event([{
@@ -249,7 +255,9 @@ class CardStack extends Component {
                       // if translate amt is greater than tickHeight / 2, snap to next index
                       // otherwise snap back to current index
                       set(this.sprConfig.toValue, cond(
-                        greaterThan(modulo(this.prevTrans, tickHeight), tickHeight / 2),
+                        [
+                          greaterThan(modulo(this.prevTrans, tickHeight), tickHeight / 2)
+                      ],
                         [
                           set(this._temp, sub(tickHeight, modulo(this.prevTrans, tickHeight))),
                         ], [
@@ -258,7 +266,7 @@ class CardStack extends Component {
                       ),
                       startClock(this.clock),
                     ]),
-                  set(this.translationY, 0)
+                    set(this.translationY, 0),
                 ])
 
               ]),

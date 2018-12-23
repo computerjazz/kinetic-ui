@@ -121,7 +121,7 @@ class CardStack extends Component {
         
       ]
 
-      const cumulativeTrans = multiply(add(this.prevTrans, this.translationX, this.animState.position), -1)
+      const cumulativeTrans = add(this.prevTrans, this.translationX, this.animState.position) // TODO: figure out how to do this without inverting
 
       const interpolated = Animated.interpolate(cumulativeTrans, {
         inputRange: [-tickWidth, 0, tickWidth],
@@ -137,7 +137,7 @@ class CardStack extends Component {
       const rotateX = multiply(min(0.2, abs(add(rotAmt, this.altState.position))), -1)
       const rotateY = Animated.interpolate( transToIndex, {
         inputRange: [0, numCards],
-        outputRange: [0, -Math.PI * 2],
+        outputRange: [0, Math.PI * 2],
       })
 
       const translateX = multiply(width / 3, sin(rotateY))
@@ -202,7 +202,9 @@ class CardStack extends Component {
             rotateX,
           }]
         }}
-      />
+      >
+      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold'}}>{index}</Text>
+      </Animated.View>
     )
   }
 
@@ -214,8 +216,6 @@ class CardStack extends Component {
       <View style={{
         flex: 1,
         backgroundColor: 'seashell',
-        alignItems: 'center',
-        justifyContent: 'center',
       }}>
         <TapGestureHandler
           onHandlerStateChange={event([
@@ -234,13 +234,14 @@ class CardStack extends Component {
             ])}
           ])}
         >
-        <Animated.View>
+        <Animated.View style={{ flex: 1 }}>
         <PanGestureHandler
           onGestureEvent={event([{
             nativeEvent: ({ translationX: x, velocityX, state }) => block([
               cond(eq(this.gestureState, State.ACTIVE), [
                 set(this.translationX, x),
                 set(this.velocity, velocityX),
+                debug('set valocity', this.velocity)
               ])
             ])
           }])}

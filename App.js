@@ -9,7 +9,7 @@ import Dot from './screens/Dot'
 import CardRotate from './screens/CardRotate'
 import CardFlip from './screens/CardFlip'
 import CardStack from './screens/CardStack'
-import CardCircle from './screens/CardCircle'
+import Carousel from './screens/Carousel'
 
 const Stack = createStackNavigator({
   Flower: { screen: Flower },
@@ -18,7 +18,7 @@ const Stack = createStackNavigator({
   Dot: { screen: Dot },
   Card: { screen: CardRotate },
   Stack: { screen: CardStack },
-  Carousel: { screen: CardCircle },
+  Carousel: { screen: Carousel },
   Flip: { screen: CardFlip },
 }, {
   initialRouteName: 'Menu',

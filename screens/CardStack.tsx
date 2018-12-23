@@ -149,7 +149,7 @@ class CardStack extends Component {
         const rotateX = Animated.concat(
           Animated.interpolate(transToIndex, {
             inputRange: [0, 0.5, 1, 2, arr.length],
-            outputRange: [80, 0, 90, 80, 80],
+            outputRange: [80, 0, 75, 80, 80],
           }), 'deg')
 
         const scaleXY = Animated.interpolate(transToIndex, {
@@ -215,7 +215,10 @@ class CardStack extends Component {
 
   render() {
     return (
-      <View style={{ flex: 1, backgroundColor: 'seashell', alignItems: 'center' }}>
+      <View style={{ 
+        flex: 1, 
+        backgroundColor: 'seashell', 
+      }}>
         <PanGestureHandler
           onGestureEvent={event([{
             nativeEvent: ({ translationY: y, velocityY, state }) => block([
@@ -229,7 +232,6 @@ class CardStack extends Component {
           onHandlerStateChange={event([{
             nativeEvent: ({ state, velocityY }) => block([
               
-              set(this.gestureState, state),
               
               cond(and(eq(state, State.ACTIVE), clockRunning(this.clock)), [
                 stopClock(this.clock),
@@ -239,9 +241,8 @@ class CardStack extends Component {
                 set(this.animState.frameTime, 0),
                 set(this.animState.finished, 0),
               ]),
-              onChange(this.gestureState, [
 
-                cond(eq(state, State.END), [
+                cond(and(neq(this.gestureState, State.END), eq(state, State.END)), [
                   set(this.prevTrans, add(this.translationY, this.prevTrans)),
                   cond(and(greaterThan(velocityY, 100), eq(this.sprState.position, 0)), [
                     cond(clockRunning(this.clock), stopClock(this.clock)),
@@ -267,12 +268,11 @@ class CardStack extends Component {
                       startClock(this.clock),
                     ]),
                     set(this.translationY, 0),
-                ])
-
-              ]),
-              ,
+                  ]),
+                  set(this.gestureState, state),
             ])
-          }])}
+          }]
+          )}
         >
           <Animated.View style={{
             flex: 1,

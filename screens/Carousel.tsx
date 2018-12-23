@@ -100,9 +100,14 @@ class CardStack extends Component {
 
       const runClock = [
         cond(clockRunning(this.clock), [
+          // debug('pos', this.animState.position),
+          // debug('fin?', this.animState.finished),
           timing(this.clock, this.animState, this.animConfig),
-          cond(and(eq(this.animState.finished, 1), clockRunning(this.clock)), [
+          cond(and(this.animState.finished, clockRunning(this.clock)), [
+            // debug('stopping clock', this.animState.position),
             stopClock(this.clock),
+            set(this.prevTrans, add(this.prevTrans, this.animState.position)),
+            set(this.animState.position, 0),
             set(this.animState.time, 0),
             set(this.animState.frameTime, 0),
             set(this.animState.finished, 0),
@@ -128,13 +133,13 @@ class CardStack extends Component {
         outputRange: [sub(index, 1), index, add(index, 1)],
       })
 
-      const rotAmt =  multiply(diff(cumulativeTrans), 0.005)
+      const leanAmt =  multiply(diff(cumulativeTrans), 0.005)
       const transToIndex = modulo([
         runClock, 
-        set(this._temp, rotAmt),
+        set(this._temp, leanAmt),
         interpolated], arr.length)
 
-      const rotateX = multiply(min(0.2, abs(add(rotAmt, this.altState.position))), -1)
+      const rotateX = multiply(min(0.2, abs(add(leanAmt, this.altState.position))), -1)
       const rotateY = Animated.interpolate( transToIndex, {
         inputRange: [0, numCards],
         outputRange: [0, Math.PI * 2],
@@ -203,7 +208,7 @@ class CardStack extends Component {
           }]
         }}
       >
-      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold'}}>{index}</Text>
+      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold'}}>{}</Text>
       </Animated.View>
     )
   }
@@ -225,6 +230,8 @@ class CardStack extends Component {
                   set(this.altState.position, this._temp),
                   startClock(this.altClock),
                   stopClock(this.clock),
+                  set(this.prevTrans, add(this.prevTrans, this.animState.position)),
+                  set(this.animState.position, 0),
                   set(this.animState.time, 0),
                   set(this.animState.frameTime, 0),
                   set(this.animState.finished, 0)
@@ -241,7 +248,7 @@ class CardStack extends Component {
               cond(eq(this.gestureState, State.ACTIVE), [
                 set(this.translationX, x),
                 set(this.velocity, velocityX),
-                debug('set valocity', this.velocity)
+                // debug('set valocity', this.velocity)
               ])
             ])
           }])}
@@ -253,6 +260,7 @@ class CardStack extends Component {
                   cond(clockRunning(this.clock), [
                     stopClock(this.clock),
                     set(this.animState.time, 0),
+                    set(this.animState.position, 0),
                     set(this.animState.frameTime, 0),
                     set(this.animState.finished, 0)
                   ]),
@@ -261,12 +269,27 @@ class CardStack extends Component {
                 cond(eq(this.gestureState, State.END),
                   [
                     set(this.prevTrans, add(this.translationX, this.prevTrans)),
+                    // debug('END velocity:', this.velocity),
+                    // debug('END prevTrans:', this.prevTrans),
+                    // debug('END transX:', this.translationX),
                     set(this.translationX, 0),
-                    debug('END velocity:', this.velocity),
-                    cond(clockRunning(this.clock), stopClock(this.clock)),
+                    cond(clockRunning(this.clock), [
+                      stopClock(this.clock),
+                      set(this.animState.time, 0),
+                      set(this.animState.position, 0),
+                      set(this.animState.frameTime, 0),
+                      set(this.animState.finished, 0)
+                    ]),
                     cond(greaterThan(abs(this.velocity), 0), [
                       set(this.animConfig.toValue, this.velocity),
                       set(this.animConfig.duration, 5000),
+                      // debug('configured', this.animConfig.toValue),
+                      set(this.animState.time, 0),
+                      set(this.animState.position, 0),
+                      set(this.animState.frameTime, 0),
+                      set(this.animState.finished, 0),
+                      // debug('starting clock: to:', this.animConfig.toValue),
+                      // debug('from current pos:', this.prevTrans),
                       startClock(this.clock),
                     ]),
                   ]),

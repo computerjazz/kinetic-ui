@@ -2,7 +2,7 @@ import React, { Component } from 'react'
 import { Text, View, TouchableOpacity, StyleSheet } from 'react-native'
 
 
-const screens = ['Flower', 'Lanterns', 'Dot', 'Card', 'Stack', 'Carousel', 'Flip']
+const screens = ['Stack', 'Carousel', 'Flip']
 
 class Menu extends Component {
 

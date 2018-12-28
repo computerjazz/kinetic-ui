@@ -57,16 +57,14 @@ class Card extends Component {
     this.prevY = new Value(0)
     this._tempTransX = new Value(0)
     this._tempTransY = new Value(0)
-    this.animX = new Value(0)
-    this.animY = new Value(0)
 
 
-    this._iy = Animated.interpolate(add(this.prevY, this.translationY, this.animY), {
+    this._iy = Animated.interpolate(add(this.prevY, this.translationY), {
       inputRange: [-size, 0, size],
       outputRange: [180, 0, -180],
     })
 
-    this._ix = Animated.interpolate(add(this.prevX, this.translationX, this.animX), {
+    this._ix = Animated.interpolate(add(this.prevX, this.translationX), {
       inputRange: [-size, 0, size],
       outputRange: [-180, 0, 180],
     })
@@ -79,13 +77,30 @@ class Card extends Component {
     this.targetX= multiply(size, this.indexX)
     this.targetY= multiply(size, this.indexY, -1)
 
-    this.rotateX = Animated.concat(this._iy, 'deg')
-    this.rotateY = Animated.concat(this._ix, 'deg')
+    this._mx = sub(modulo(add(this._ix, 90), 180), 90)
+    this._my = sub(modulo(add(this._iy, 90), 180), 90)
+
+    this._isInverted = modulo(
+                        floor(
+                          divide(
+                            add(this.translationY, size / 2), size)
+                            )
+                        , 2)
+
+    this.rotateX = Animated.concat([
+      this._my, 
+    ],
+      'deg')
+    this.rotateY = Animated.concat([
+      cond(this._isInverted, multiply(this._mx, -1), this._mx),
+    ], 'deg')
 
     const colorIndex = sub([
       // debug('indexX', this.indexX),
       // debug('indexY', this.indexY),
       // debug('index', this.index),
+      debug('is inverted?', this._isInverted),
+      debug('mod y', this._my),
       maxIndex], modulo(add(this.index, maxIndex), numCards))
 
     const c = multiply(colorIndex, colorMultiplier)
@@ -116,7 +131,6 @@ class Card extends Component {
 
     this.clock = new Clock()
 
-
     const isActive = [
       cond(eq(this.gestureState, State.ACTIVE), 1, 0)
     ]
@@ -135,14 +149,12 @@ class Card extends Component {
     const stopClockIfFinished = [
       cond(this.springState.finished, [
         reset,
-        debug('done!', this.springState.finished),
         stopClock(this.clock),
       ])
     ]
 
     const stopClockIfStarted = [
       cond(clockRunning(this.clock), [
-        debug('stopping!', this.springState.position),
         stopClock(this.clock),
         set(this.springState.position, 0),
         set(this.springState.finished, 0),
@@ -158,8 +170,18 @@ class Card extends Component {
 
     const startClockIfStopped = [
       cond(clockRunning(this.clock), 0, [
-        set(this.prevX, add(this.prevX, this.translationX)),
         set(this.prevY, add(this.prevY, this.translationY)),
+        set(this.prevX, 
+          cond(this._isInverted, 
+            add(this.prevX, multiply(this.translationX, -1)), 
+            add(this.prevX, this.translationX)
+          )
+        ),
+
+        cond(this._isInverted, [
+          debug('inv!!', this.prevY),
+          // set(this.prevY, add(this.prevY, multiply(this.translationY, -1)))
+        ]),
 
         set(this._px, this.prevX),
         set(this._py, this.prevY),
@@ -167,12 +189,12 @@ class Card extends Component {
         set(this.diffX, sub(this.targetX, this.prevX)),
         set(this.diffY, sub(this.targetY, this.prevY)),
 
-        debug('starting clock trans X:', this.translationX),
-        debug('trans Y:', this.translationY),
-        debug('target X:', this.targetX),
-        debug('target Y:', this.targetY),
-        debug('diff x:', this.diffX),
-        debug('diff y:', this.diffY),
+        // debug('starting clock trans X:', this.translationX),
+        // debug('trans Y:', this.translationY),
+        // debug('target X:', this.targetX),
+        // debug('target Y:', this.targetY),
+        // debug('diff x:', this.diffX),
+        // debug('diff y:', this.diffY),
 
         set(this.translationX, 0),
         set(this.translationY, 0),
@@ -235,6 +257,7 @@ class Card extends Component {
             width: size * .75, 
             height: size * .75,
             backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            borderRadius: 5,
             zIndex: -999,
               transform: [
                 {
@@ -260,7 +283,9 @@ class Card extends Component {
                   rotateY: this._y,
                 }]
             }}
-          />
+          >
+          <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white'}}>{"DAN"}</Text>
+          </Animated.View>
 
           <BackButton color="#ddd" onPress={() => this.props.navigation.goBack(null)} />
         </Animated.View>

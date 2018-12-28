@@ -76,7 +76,8 @@ class Card extends Component {
 
     this.index = add(this.indexX, this.indexY)
 
-    this.target= multiply(size, this.index)
+    this.targetX= multiply(size, this.indexX)
+    this.targetY= multiply(size, this.indexY, -1)
 
     this.rotateX = Animated.concat(this._iy, 'deg')
     this.rotateY = Animated.concat(this._ix, 'deg')
@@ -163,12 +164,13 @@ class Card extends Component {
         set(this._px, this.prevX),
         set(this._py, this.prevY),
 
-        set(this.diffX, sub(this.target, this.prevX)),
-        set(this.diffY, sub(this.target, this.prevY)),
+        set(this.diffX, sub(this.targetX, this.prevX)),
+        set(this.diffY, sub(this.targetY, this.prevY)),
 
         debug('starting clock trans X:', this.translationX),
         debug('trans Y:', this.translationY),
-        debug('target:', this.target),
+        debug('target X:', this.targetX),
+        debug('target Y:', this.targetY),
         debug('diff x:', this.diffX),
         debug('diff y:', this.diffY),
 
@@ -188,7 +190,7 @@ class Card extends Component {
             cond(clockRunning(this.clock), [
               spring(this.clock, this.springState, this.springConfig),
               set(this.prevX, add(this._px, multiply(this.diffX, this.springState.position))),
-              // set(this.prevY, add(this._py, multiply(this.diffY, this.springState.position))),
+              set(this.prevY, add(this._py, multiply(this.diffY, this.springState.position))),
             ]),
             stopClockIfFinished,     
       ]),
@@ -225,9 +227,26 @@ class Card extends Component {
           justifyContent: 'center' 
         }}
         >
+        <Animated.View 
+          style={{
+            position: 'absolute',
+            top: height / 2,
+            right: width / 2,
+            width: size * .75, 
+            height: size * .75,
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            zIndex: -999,
+              transform: [
+                {
+                  perspective: this.perspective,
+                  rotateX: this._x,
+                  rotateY: this._y,
+                }]
+          }}
+        />
           <Animated.View
             style={{
-              opacity: 0.9,
+              opacity: 0.8,
               justifyContent: 'center',
               alignItems: 'center',
               width: size,

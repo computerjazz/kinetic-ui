@@ -17,11 +17,13 @@ const {
   or,
   add,
   multiply,
+  divide,
   greaterThan,
   lessThan,
   spring,
   timing,
   block,
+  floor,
   startClock,
   stopClock,
   clockRunning,
@@ -42,6 +44,7 @@ import BackButton from '../components/BackButton'
 const size = width / 2 
 const numCards = 7
 const maxIndex = numCards - 1
+const colorMultiplier = 255 / maxIndex
 
 class Card extends Component {
 
@@ -50,35 +53,39 @@ class Card extends Component {
     this.translationX = new Value(0)
     this.translationY = new Value(0)
     this.gestureState = new Value(State.UNDETERMINED)
+    this.prevX = new Value(0)
+    this.prevY = new Value(0)
+    this._tempTransX = new Value(0)
+    this._tempTransY = new Value(0)
+    this.animX = new Value(0)
+    this.animY = new Value(0)
 
 
-    this._iy = Animated.interpolate(this.translationY, {
+    this._iy = Animated.interpolate(add(this.prevY, this.translationY, this.animY), {
       inputRange: [-size, 0, size],
       outputRange: [180, 0, -180],
-      extrapolate: Animated.Extrapolate.CLAMP,
     })
 
-    this._ix = Animated.interpolate(this.translationX, {
+    this._ix = Animated.interpolate(add(this.prevX, this.translationX, this.animX), {
       inputRange: [-size, 0, size],
       outputRange: [-180, 0, 180],
-      extrapolate: Animated.Extrapolate.CLAMP,
     })
 
-    this.rotateX = Animated.concat(this._iy,'deg')
+    this.indexX = floor(divide(add(this._ix, 90), 180))
+    this.indexY = floor(divide(add(this._iy, 90), 180))
+
+    this.index = add(this.indexX, this.indexY)
+
+    this.target= multiply(size, this.index)
+
+    this.rotateX = Animated.concat(this._iy, 'deg')
     this.rotateY = Animated.concat(this._ix, 'deg')
 
-    xPast90 = greaterThan(abs(this._ix), 90)
-    yPast90 = greaterThan(abs(this._iy), 90)
-    const orFlip = or(xPast90, yPast90)
-    const nandFlip = not(and(xPast90, yPast90))
-    const hasFlipped = and(orFlip, nandFlip)
-
-
-    const colorMultiplier = 255 / maxIndex
-
-    const i = new Value(0)
-    const currentIndex = cond(hasFlipped, add(i, 1), i)
-    const colorIndex = sub(maxIndex, modulo(add(currentIndex, maxIndex), numCards))
+    const colorIndex = sub([
+      // debug('indexX', this.indexX),
+      // debug('indexY', this.indexY),
+      // debug('index', this.index),
+      maxIndex], modulo(add(this.index, maxIndex), numCards))
 
     const c = multiply(colorIndex, colorMultiplier)
     const r = round(c)
@@ -92,7 +99,7 @@ class Card extends Component {
     this.springState = {
       finished: new Value(0),
       velocity: new Value(0),
-      position: new Value(1),
+      position: new Value(0),
       time: new Value(0),
     };
 
@@ -101,38 +108,25 @@ class Card extends Component {
       mass: 1,
       stiffness: 50.296,
       overshootClamping: false,
-      toValue: new Value(0),
+      toValue: new Value(1),
       restSpeedThreshold: 0.001,
       restDisplacementThreshold: 0.001,
     };
 
     this.clock = new Clock()
-    this._lastX = new Value(0)
-    this._lastY = new Value(0)
 
-    const hasMoved = [
-      cond(or(this.translationX, this.translationY), 1, 0)
-    ]
 
     const isActive = [
       cond(eq(this.gestureState, State.ACTIVE), 1, 0)
     ]
 
-    const startClockIfStopped = [
-      cond(clockRunning(this.clock), 0, [
-        set(this._lastY, this.translationY),
-        set(this._lastX, this.translationX),
-        startClock(this.clock)
-      ]
-      )
-    ]
-
     const reset = [
-      set(this._lastY, 0),
-      set(this._lastX, 0),
+      debug('reset', this._tempTransX),
+      set(this._tempTransY, 0),
+      set(this._tempTransX, 0),
       set(this.translationX, 0),
       set(this.translationY, 0),
-      set(this.springState.position, 1),
+      set(this.springState.position, 0),
       set(this.springState.finished, 0),
       set(this.springState.time, 0),
     ]
@@ -147,42 +141,62 @@ class Card extends Component {
 
     const stopClockIfStarted = [
       cond(clockRunning(this.clock), [
+        debug('stopping!', this.springState.position),
         stopClock(this.clock),
-        set(this.springState.position, 1),
+        set(this.springState.position, 0),
         set(this.springState.finished, 0),
         set(this.springState.time, 0),
       ])
     ]
 
+    this.diffX = new Value(0)
+    this.diffY = new Value(0)
+    this._px = new Value(0)
+    this._py = new Value(0)
 
+
+    const startClockIfStopped = [
+      cond(clockRunning(this.clock), 0, [
+        set(this.prevX, add(this.prevX, this.translationX)),
+        set(this.prevY, add(this.prevY, this.translationY)),
+
+        set(this._px, this.prevX),
+        set(this._py, this.prevY),
+
+        set(this.diffX, sub(this.target, this.prevX)),
+        set(this.diffY, sub(this.target, this.prevY)),
+
+        debug('starting clock trans X:', this.translationX),
+        debug('trans Y:', this.translationY),
+        debug('target:', this.target),
+        debug('diff x:', this.diffX),
+        debug('diff y:', this.diffY),
+
+        set(this.translationX, 0),
+        set(this.translationY, 0),
+
+        startClock(this.clock)
+      ]
+      )
+    ]
 
     this._x = block([
       cond(isActive, [
         stopClockIfStarted,
-        this.rotateX,
-      ],
-        cond(hasMoved, [
-          startClockIfStopped,
-          spring(this.clock, this.springState, this.springConfig),
-          stopClockIfFinished,
-          set(this.translationY, multiply(this._lastY, this.springState.position)),
-          this.rotateX,
-        ], this.rotateX))
+      ], [
+            startClockIfStopped,
+            cond(clockRunning(this.clock), [
+              spring(this.clock, this.springState, this.springConfig),
+              set(this.prevX, add(this._px, multiply(this.diffX, this.springState.position))),
+              // set(this.prevY, add(this._py, multiply(this.diffY, this.springState.position))),
+            ]),
+            stopClockIfFinished,     
+      ]),
+      this.rotateX,
     ])
 
-
-    this._y = block([
-      cond(isActive, this.rotateY,
-        cond(hasMoved, [
-          set(this.translationX, multiply(this._lastX, this.springState.position)),
-          this.rotateY,
-        ], this.rotateY)
-      )
-    ])
+    this._y = this.rotateY
   }
-
-
-
 
 
   render() {
@@ -190,12 +204,18 @@ class Card extends Component {
       <PanGestureHandler
         onGestureEvent={event([{
           nativeEvent: ({ translationX: x, translationY: y }) => block([
-            set(this.translationX, x),
-            set(this.translationY, y),
+            cond(eq(this.gestureState, State.ACTIVE), [
+              set(this.translationX, x),
+              set(this.translationY, y),
+            ])
           ])
         }
         ])}
-        onHandlerStateChange={event([{ nativeEvent: { state: this.gestureState } }])}
+        onHandlerStateChange={event([{ 
+          nativeEvent: ({ state }) => block([
+            set(this.gestureState, state),
+          ])
+        }])}
       >
 
         <Animated.View style={{ 

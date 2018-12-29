@@ -50,28 +50,29 @@ class Card extends Component {
 
   constructor() {
     super()
+    this.startIndexY = new Value(0)
+
     this.translationX = new Value(0)
     this.translationY = new Value(0)
     this.gestureState = new Value(State.UNDETERMINED)
     this.prevX = new Value(0)
     this.prevY = new Value(0)
-    this._tempTransX = new Value(0)
-    this._tempTransY = new Value(0)
 
+    this._cy = add(this.prevY, this.translationY)
+    this._cx = add(this.prevX, this.translationX)
 
-    this._iy = Animated.interpolate(add(this.prevY, this.translationY), {
+    this._iy = Animated.interpolate(this._cy, {
       inputRange: [-size, 0, size],
       outputRange: [180, 0, -180],
     })
 
-    this._ix = Animated.interpolate(add(this.prevX, this.translationX), {
+    this._ix = Animated.interpolate(this._cx, {
       inputRange: [-size, 0, size],
       outputRange: [-180, 0, 180],
     })
 
     this.indexX = floor(divide(add(this._ix, 90), 180))
     this.indexY = floor(divide(add(this._iy, 90), 180))
-
     this.index = add(this.indexX, this.indexY)
 
     this.targetX= multiply(size, this.indexX)
@@ -80,35 +81,20 @@ class Card extends Component {
     this._mx = sub(modulo(add(this._ix, 90), 180), 90)
     this._my = sub(modulo(add(this._iy, 90), 180), 90)
 
-    this._isInverted = modulo(
-                        floor(
-                          divide(
-                            add(this.translationY, size / 2), size)
-                            )
-                        , 2)
+    this._isInverted = modulo(sub(this.startIndexY, this.indexY), 2)
 
-    this.rotateX = Animated.concat([
-      this._my, 
-    ],
-      'deg')
+    this.rotateX = Animated.concat(this._my, 'deg')
     this.rotateY = Animated.concat([
       cond(this._isInverted, multiply(this._mx, -1), this._mx),
     ], 'deg')
 
-    const colorIndex = sub([
-      // debug('indexX', this.indexX),
-      // debug('indexY', this.indexY),
-      // debug('index', this.index),
-      debug('is inverted?', this._isInverted),
-      debug('mod y', this._my),
-      maxIndex], modulo(add(this.index, maxIndex), numCards))
+    const colorIndex = sub(maxIndex, modulo(add(this.index, maxIndex), numCards))
 
     const c = multiply(colorIndex, colorMultiplier)
     const r = round(c)
     const g = round(abs(sub(128, c)))
     const b = round(sub(255, c))
     this.color = color(r, g, b)
-
 
     this.perspective = new Value(850)
 
@@ -136,9 +122,6 @@ class Card extends Component {
     ]
 
     const reset = [
-      debug('reset', this._tempTransX),
-      set(this._tempTransY, 0),
-      set(this._tempTransX, 0),
       set(this.translationX, 0),
       set(this.translationY, 0),
       set(this.springState.position, 0),
@@ -167,34 +150,16 @@ class Card extends Component {
     this._px = new Value(0)
     this._py = new Value(0)
 
-
     const startClockIfStopped = [
       cond(clockRunning(this.clock), 0, [
         set(this.prevY, add(this.prevY, this.translationY)),
-        set(this.prevX, 
-          cond(this._isInverted, 
-            add(this.prevX, multiply(this.translationX, -1)), 
-            add(this.prevX, this.translationX)
-          )
-        ),
-
-        cond(this._isInverted, [
-          debug('inv!!', this.prevY),
-          // set(this.prevY, add(this.prevY, multiply(this.translationY, -1)))
-        ]),
+        set(this.prevX, add(this.prevX, this.translationX)),
 
         set(this._px, this.prevX),
         set(this._py, this.prevY),
 
         set(this.diffX, sub(this.targetX, this.prevX)),
         set(this.diffY, sub(this.targetY, this.prevY)),
-
-        // debug('starting clock trans X:', this.translationX),
-        // debug('trans Y:', this.translationY),
-        // debug('target X:', this.targetX),
-        // debug('target Y:', this.targetY),
-        // debug('diff x:', this.diffX),
-        // debug('diff y:', this.diffY),
 
         set(this.translationX, 0),
         set(this.translationY, 0),
@@ -222,7 +187,6 @@ class Card extends Component {
     this._y = this.rotateY
   }
 
-
   render() {
     return (
       <PanGestureHandler
@@ -237,6 +201,9 @@ class Card extends Component {
         ])}
         onHandlerStateChange={event([{ 
           nativeEvent: ({ state }) => block([
+            cond(and(neq(this.gestureState, State.ACTIVE), eq(state, State.ACTIVE)), [
+              set(this.startIndexY, this.indexY),
+            ]),
             set(this.gestureState, state),
           ])
         }])}
@@ -284,7 +251,7 @@ class Card extends Component {
                 }]
             }}
           >
-          <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white'}}>{"DAN"}</Text>
+          <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white'}}>{}</Text>
           </Animated.View>
 
           <BackButton color="#ddd" onPress={() => this.props.navigation.goBack(null)} />

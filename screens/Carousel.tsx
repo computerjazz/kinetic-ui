@@ -37,6 +37,7 @@ const {
   abs,
   diff,
   min,
+  max,
 } = Animated;
 
 import BackButton from '../components/BackButton'
@@ -45,6 +46,8 @@ class CardStack extends Component {
 
   constructor() {
     super()
+    this.mainHandler = React.createRef()
+
     this.translationX = new Value(0)
     this.prevTrans = new Value(0)
     this.cumulativeTrans = new Value(0)
@@ -168,6 +171,25 @@ class CardStack extends Component {
       // 1
       // `colorIndex` compensates for this
       const colorIndex = maxIndex - (i + maxIndex) % (arr.length)
+      const cardTransY = new Value(0)
+      const cardGestureState = new Value(0)
+      const cardClock = new Clock()
+      const cardState = {
+        finished: new Value(0),
+        position: new Value(1),
+        velocity: new Value(0),
+        time: new Value(0),
+      }
+
+      const cardConfig = {
+        damping: 15,
+        mass: 1,
+        stiffness: 150,
+        overshootClamping: false,
+        toValue: new Value(0),
+        restSpeedThreshold: 0.001,
+        restDisplacementThreshold: 0.001,
+      } 
 
       return {
         color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
@@ -180,14 +202,59 @@ class CardStack extends Component {
         rotateX,
         index: i,
         perspective: this.perspective,
+        handlerRef: React.createRef(),
+        cardState,
+        cardConfig,
+        cardTransY,
+        cardClock,
+        cardGestureState,
       }
     })
   }
 
-  renderCard = ({ index, color, scale, translateX, translateY, zIndex, rotateY, rotateX, size, perspective }, i) => {
+
+  renderCard = ({ handlerRef, cardTransY, cardClock, cardState, cardConfig, cardGestureState, index, color, scale, translateX, translateY, zIndex, rotateY, rotateX, size, perspective }, i) => {
+    // @NOTE: PanGestureHandler should not directly wrap an element that can rotate completely on edge.
+    // this causes values to go to infinity.
     return (
-      <Animated.View
+      <PanGestureHandler
         key={`card-${i}`}
+        ref={handlerRef}
+        simultaneousHandlers={this.mainHandler}
+        onGestureEvent={event([{
+          nativeEvent: ({ translationY }) => block([
+            set(cardTransY, translationY),
+          ])
+        }])}
+        onHandlerStateChange={event([{
+          nativeEvent: ({ state }) => block([
+            cond(
+              and(neq(state, State.ACTIVE), eq(cardGestureState, State.ACTIVE)), [
+                startClock(cardClock),
+            ]),
+            cond(and(eq(state, State.ACTIVE), clockRunning(cardClock)), [
+              stopClock(cardClock),
+              set(cardState.position, 1),
+              set(cardState.finished, 0),
+              set(cardState.time, 0),
+              set(cardState.velocity, 0),
+              set(cardTransY, 0),
+            ]),
+            set(cardGestureState, state),
+          ])
+        }])}
+      >
+      <Animated.View style={{ 
+        zIndex, 
+        translateX, 
+        translateY, 
+        flex: 1, 
+        backgroundColor: 'teal', 
+        position: 'absolute', 
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+      <Animated.View
         style={{
           position: 'absolute',
           alignItems: 'center',
@@ -200,7 +267,22 @@ class CardStack extends Component {
           transform: [{
             perspective,
             translateX,
-            translateY,
+            translateY: block([
+              cond(and(clockRunning(cardClock), cardState.finished), [
+                stopClock(cardClock),
+                set(cardState.position, 1),
+                set(cardState.finished, 0),
+                set(cardState.time, 0),
+                set(cardState.velocity, 0),
+                set(cardTransY, 0),
+              ]),
+              cond(clockRunning(cardClock), [
+                spring(cardClock, cardState, cardConfig),
+                multiply(add(translateY, cardTransY), cardState.position),
+              ], [
+                add(translateY, cardTransY),
+              ]),
+            ]),
             scaleX: scale,
             scaleY: scale,
             rotateY,
@@ -210,13 +292,14 @@ class CardStack extends Component {
       >
       <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold'}}>{}</Text>
       </Animated.View>
+      </Animated.View>
+      </PanGestureHandler>
     )
   }
 
   velocity = new Value(0)
 
   render() {
-    // console.log('cards', this.cards) // NOTE: logging out animated data causes Expo to freeze
     return (
       <View style={{
         flex: 1,
@@ -243,12 +326,12 @@ class CardStack extends Component {
         >
         <Animated.View style={{ flex: 1 }}>
         <PanGestureHandler
+        ref={this.mainHandler}
           onGestureEvent={event([{
             nativeEvent: ({ translationX: x, velocityX, state }) => block([
               cond(eq(this.gestureState, State.ACTIVE), [
                 set(this.translationX, x),
                 set(this.velocity, velocityX),
-                // debug('set valocity', this.velocity)
               ])
             ])
           }])}

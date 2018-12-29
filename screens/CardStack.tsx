@@ -216,22 +216,20 @@ class CardStack extends Component {
 
               cond(and(neq(this.gestureState, State.END), eq(state, State.END)), [
                 set(this.prevTrans, add(this.translationY, this.prevTrans)),
-                // debug('end prev', this.prevTrans),
-                // debug('END trans!', this.translationY),
-                // debug('end mod', modulo(this.prevTrans, tickHeight)),
-
-                // if translate amt is greater than tickHeight / 2, snap to next index
+                // if translate amt is greater than tickHeight / 2 or is fling gesture
+                //snap to next index
                 // otherwise snap back to current index
                 set(this.sprConfig.toValue, cond(
                   [
-                    greaterThan(modulo(this.prevTrans, tickHeight), tickHeight / 2)
+                    or(
+                      greaterThan(this.velocity, 500),
+                      greaterThan(modulo(this.prevTrans, tickHeight), tickHeight / 2)
+                      )
                   ],
                   [
                     set(this._tempOffset, sub(tickHeight, modulo(this.prevTrans, tickHeight))),
-                    // debug('gt temp!', this._tempOffset),
                   ], [
                     set(this._tempOffset, multiply(modulo(this.prevTrans, tickHeight), -1)),
-                    // debug('less temp!', this._tempOffset),
                   ])
                 ),
                 startClock(this.clock),

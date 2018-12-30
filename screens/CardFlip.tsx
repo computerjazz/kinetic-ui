@@ -1,9 +1,10 @@
 import React, { Component } from 'react'
-import { View, Dimensions, Text } from 'react-native'
+import { View, Dimensions, Text, Platform } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 
 const { width, height } = Dimensions.get('window');
+const isAndroid = Platform.OS === 'android'
 
 const {
   onChange,
@@ -150,19 +151,21 @@ class Card extends Component {
     this._px = new Value(0)
     this._py = new Value(0)
 
+    const label = isAndroid ? 'android' : 'ios'
+
     const startClockIfStopped = [
       cond(clockRunning(this.clock), 0, [
         set(this.prevY, add(this.prevY, this.translationY)),
         set(this.prevX, add(this.prevX, this.translationX)),
+
+        set(this.translationX, 0),
+        set(this.translationY, 0),
 
         set(this._px, this.prevX),
         set(this._py, this.prevY),
 
         set(this.diffX, sub(this.targetX, this.prevX)),
         set(this.diffY, sub(this.targetY, this.prevY)),
-
-        set(this.translationX, 0),
-        set(this.translationY, 0),
 
         startClock(this.clock)
       ]

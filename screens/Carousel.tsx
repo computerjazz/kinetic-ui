@@ -1,9 +1,13 @@
 import React, { Component } from 'react'
-import { View, Dimensions, Text } from 'react-native'
+import { View, Dimensions, Text, Platform } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 
+const isAndroid = Platform.OS === 'android'
+
+
 const { width, height } = Dimensions.get('window');
+console.log('width', width)
 
 const {
   onChange,
@@ -103,11 +107,8 @@ class CardStack extends Component {
 
       const runClock = [
         cond(clockRunning(this.clock), [
-          // debug('pos', this.animState.position),
-          // debug('fin?', this.animState.finished),
           timing(this.clock, this.animState, this.animConfig),
           cond(and(this.animState.finished, clockRunning(this.clock)), [
-            // debug('stopping clock', this.animState.position),
             stopClock(this.clock),
             set(this.prevTrans, add(this.prevTrans, this.animState.position)),
             set(this.animState.position, 0),
@@ -152,7 +153,7 @@ class CardStack extends Component {
       const translateY = 0
 
       const scaleXY = add(1,
-        multiply(0.2, sin(add(Math.PI / 2, rotateY))),
+        multiply(0.15, sin(add(Math.PI / 2, rotateY))),
       )
 
       const zIndex = Animated.interpolate(transToIndex, {
@@ -222,8 +223,11 @@ class CardStack extends Component {
         ref={handlerRef}
         simultaneousHandlers={this.mainHandler}
         onGestureEvent={event([{
-          nativeEvent: ({ translationY }) => block([
-            set(cardTransY, translationY),
+          
+          nativeEvent: ({ translationY, state }) => block([
+            cond(eq(cardGestureState, State.ACTIVE), [
+              set(cardTransY, translationY),
+            ])
           ])
         }])}
         onHandlerStateChange={event([{
@@ -246,13 +250,17 @@ class CardStack extends Component {
       >
       <Animated.View style={{ 
         zIndex, 
-        translateX, 
-        translateY, 
-        flex: 1, 
-        backgroundColor: 'teal', 
         position: 'absolute', 
         alignItems: 'center',
         justifyContent: 'center',
+        width: size / 4,
+        height: size,
+        transform: [{
+          perspective,
+          translateX,
+          scaleX: scale,
+          scaleY: scale,
+        }]
       }}>
       <Animated.View
         style={{
@@ -266,7 +274,6 @@ class CardStack extends Component {
           zIndex,
           transform: [{
             perspective,
-            translateX,
             translateY: block([
               cond(and(clockRunning(cardClock), cardState.finished), [
                 stopClock(cardClock),
@@ -283,8 +290,6 @@ class CardStack extends Component {
                 add(translateY, cardTransY),
               ]),
             ]),
-            scaleX: scale,
-            scaleY: scale,
             rotateY,
             rotateX,
           }]
@@ -352,9 +357,6 @@ class CardStack extends Component {
                 cond(eq(this.gestureState, State.END),
                   [
                     set(this.prevTrans, add(this.translationX, this.prevTrans)),
-                    // debug('END velocity:', this.velocity),
-                    // debug('END prevTrans:', this.prevTrans),
-                    // debug('END transX:', this.translationX),
                     set(this.translationX, 0),
                     cond(clockRunning(this.clock), [
                       stopClock(this.clock),
@@ -366,13 +368,10 @@ class CardStack extends Component {
                     cond(greaterThan(abs(this.velocity), 0), [
                       set(this.animConfig.toValue, this.velocity),
                       set(this.animConfig.duration, 5000),
-                      // debug('configured', this.animConfig.toValue),
                       set(this.animState.time, 0),
                       set(this.animState.position, 0),
                       set(this.animState.frameTime, 0),
                       set(this.animState.finished, 0),
-                      // debug('starting clock: to:', this.animConfig.toValue),
-                      // debug('from current pos:', this.prevTrans),
                       startClock(this.clock),
                     ]),
                   ]),

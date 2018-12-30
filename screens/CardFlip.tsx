@@ -151,13 +151,13 @@ class Card extends Component {
     this._px = new Value(0)
     this._py = new Value(0)
 
-    const label = isAndroid ? 'android' : 'ios'
-
     const startClockIfStopped = [
       cond(clockRunning(this.clock), 0, [
         set(this.prevY, add(this.prevY, this.translationY)),
         set(this.prevX, add(this.prevX, this.translationX)),
 
+        // NOTE: Order seems to matter for Android -- resetting translation
+        // at the end of this block breaks android.
         set(this.translationX, 0),
         set(this.translationY, 0),
 

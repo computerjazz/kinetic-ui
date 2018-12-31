@@ -134,7 +134,7 @@ class CarouselPreview extends React.Component {
       const translateY = 0
 
       const scaleXY = add(1,
-        multiply(0.15, sin(add(Math.PI / 2, rotateY))),
+        multiply(0.2, sin(add(Math.PI / 2, rotateY))),
       )
 
       const zIndex = Animated.interpolate(transToIndex, {
@@ -203,7 +203,7 @@ class CarouselPreview extends React.Component {
           position: 'absolute',
           alignItems: 'center',
           justifyContent: 'center',
-          width: size / 4,
+          width: size / 3.5,
           height: size,
           transform: [{
             perspective,
@@ -217,7 +217,7 @@ class CarouselPreview extends React.Component {
               position: 'absolute',
               alignItems: 'center',
               justifyContent: 'center',
-              width: size / 4,
+              width: size / 3.5,
               height: size,
               backgroundColor: color,
               borderRadius: 10,

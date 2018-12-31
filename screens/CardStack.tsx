@@ -3,6 +3,8 @@ import { View, Dimensions, Text, Platform } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 import BackButton from '../components/BackButton'
+import { Transition } from 'react-navigation-fluid-transitions'
+
 
 const { width, height } = Dimensions.get('window');
 const isAndroid = Platform.OS === 'android'
@@ -261,10 +263,13 @@ class CardStack extends Component {
 
   render() {
     return (
+      
       <View style={{
         flex: 1,
         backgroundColor: 'seashell',
       }}>
+
+
         <PanGestureHandler
           ref={this.mainHandler}
           onGestureEvent={event([{
@@ -320,13 +325,14 @@ class CardStack extends Component {
           <Animated.View style={{
             flex: 1,
             marginTop: 50,
-            alignItems: 'center'
+            alignItems: 'center',
           }}>
             {this.cards.map(this.renderCard)}
           </Animated.View>
         </PanGestureHandler>
         <BackButton color="#ddd" onPress={() => this.props.navigation.goBack(null)} />
       </View>
+
     )
   }
 }

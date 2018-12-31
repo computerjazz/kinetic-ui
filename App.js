@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import { StatusBar } from 'react-native'
 import { createStackNavigator, createAppContainer } from 'react-navigation'
+import { createFluidNavigator } from 'react-navigation-fluid-transitions'
 
 import Flower from './screens/Flower'
 import Lanterns from './screens/Lanterns'
@@ -11,7 +12,7 @@ import CardFlip from './screens/CardFlip'
 import CardStack from './screens/CardStack'
 import Carousel from './screens/Carousel'
 
-const Stack = createStackNavigator({
+const Stack = createFluidNavigator({
   Flower: { screen: Flower },
   Menu: { screen: Menu },
   Lanterns: { screen: Lanterns },
@@ -33,9 +34,7 @@ export default class App extends Component {
       <React.Fragment>
         <StatusBar hidden />
 
-      <Navigator 
-      persistenceKey={"NavigationState"} 
-      />
+      <Navigator />
       </React.Fragment>
     );
   }

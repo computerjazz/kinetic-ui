@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { View, Dimensions, Text, Platform } from 'react-native'
+import { View, Dimensions, Text, Platform, Animated as RNAnimated } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 import BackButton from '../components/BackButton'
@@ -58,6 +58,7 @@ class CardStack extends Component {
     this.perspective = new Value(850)
     this.auto = new Value(0)
     this.clock = new Clock()
+    this._mounted = new Value(1)
 
     this.sprState = {
       finished: new Value(0),
@@ -103,8 +104,8 @@ class CardStack extends Component {
         cond(eq(this.sprState.finished, 1), [
           resetSpring,
           stopClock(this.clock),
-        ])
-
+        ]),
+        cond(not(this._mounted), stopClock(this.clock))
       ])
 
       const scale = new Value(1)
@@ -174,12 +175,12 @@ class CardStack extends Component {
     })
   }
 
+
   diffIndex = new Value(0)
   diffTrans = new Value(0)
 
   renderCard = ({ color, scale, translateY, zIndex, rotateX, size, gestureState, index }, i) => {
     return (
-
       <Animated.View
         key={`card-${i}`}
 
@@ -193,7 +194,7 @@ class CardStack extends Component {
           borderRadius: 10,
           zIndex,
           transform: [{
-            perspective: new Value(850),
+            perspective: this.perspective,
             translateY,
             scaleX: scale,
             scaleY: scale,
@@ -261,14 +262,22 @@ class CardStack extends Component {
 
   velocity = new Value(0)
 
+  componentDidMount() {
+    this.willBlurSub = this.props.navigation.addListener('willBlur', () => {
+      this._mounted.setValue(0)
+    })
+  }
+
+  componentWillUnmount() {
+    this.willBlurSub && this.willBlurSub.remove()
+  }
+
   render() {
     return (
-      
       <View style={{
         flex: 1,
         backgroundColor: 'seashell',
       }}>
-
 
         <PanGestureHandler
           ref={this.mainHandler}
@@ -322,6 +331,7 @@ class CardStack extends Component {
           }]
           )}
         >
+
           <Animated.View style={{
             flex: 1,
             marginTop: 50,
@@ -330,7 +340,11 @@ class CardStack extends Component {
             {this.cards.map(this.renderCard)}
           </Animated.View>
         </PanGestureHandler>
-        <BackButton color="#ddd" onPress={() => this.props.navigation.goBack(null)} />
+        <BackButton color="#ddd"
+
+          onPress={() => {
+            this.props.navigation.goBack(null)
+          }} />
       </View>
 
     )

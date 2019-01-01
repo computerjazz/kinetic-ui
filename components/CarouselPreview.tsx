@@ -26,7 +26,7 @@ const isAndroid = Platform.OS === 'android'
 
 class CarouselPreview extends React.Component {
 
-  constructor({ height, width }) {
+  constructor({ focused, clock, height, width }) {
     super()
     this.mainHandler = React.createRef()
 
@@ -88,8 +88,6 @@ class CarouselPreview extends React.Component {
       easing: Easing.linear,
     }
 
-    const clock = new Clock()
-
     const runClock = [
       cond(clockRunning(clock), [
         timing(clock, previewState, previewConfig),
@@ -106,8 +104,13 @@ class CarouselPreview extends React.Component {
         ]),
       previewState.position
     ]
-    const cumulativeTrans = add(this.prevTrans, this.translationX, runClock) // TODO: figure out how to do this without inverting
+    const cumulativeTrans = add(
+      this.prevTrans, 
+      this.translationX, 
+      cond(focused, runClock, 0)
 
+      ) 
+      
 
     this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
       const colorMultiplier = 255 / maxIndex

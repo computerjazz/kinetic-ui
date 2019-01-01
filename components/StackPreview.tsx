@@ -2,6 +2,7 @@ import * as React from 'react'
 import { View, Platform, Text, StyleSheet } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated'
 import { Transition } from 'react-navigation-fluid-transitions'
+
 const {
   Value,
   modulo,
@@ -24,7 +25,7 @@ const isAndroid = Platform.OS === 'android'
 
 class StackPreview extends React.Component {
 
-  constructor({ width, height }) {
+  constructor({ focused, clock, width, height }) {
     super()
     const tickHeight = height * .85
     const numCards = 7
@@ -49,8 +50,6 @@ class StackPreview extends React.Component {
       easing: Easing.linear,
     }
 
-    const clock = new Clock()
-
     const runClock = [
       cond(clockRunning(clock), [
         timing(clock, previewState, previewConfig),
@@ -69,7 +68,11 @@ class StackPreview extends React.Component {
     ]
 
     this._tempOffset = new Value(0)
-    this.cumulativeTrans = add(this.prevTrans, this.translationY, runClock)
+    this.cumulativeTrans = add(
+      this.prevTrans, 
+      this.translationY,
+      cond(focused, runClock, 0) // NOTE: was causing janky transitions
+      )
 
 
 
@@ -147,13 +150,13 @@ class StackPreview extends React.Component {
         rotateX,
         index: colorIndex,
         gestureState,
+        perspective: this.perspective,
       }
     })
   }
 
-  renderCard = ({ color, scale, translateY, zIndex, rotateX, size, gestureState, index }, i) => {
+  renderCard = ({ perspective, color, scale, translateY, zIndex, rotateX, size, gestureState, index }, i) => {
     return (
-
       <Animated.View
         key={`card-${i}`}
         style={{
@@ -166,7 +169,7 @@ class StackPreview extends React.Component {
           borderRadius: 10,
           zIndex,
           transform: [{
-            perspective: new Value(850),
+            perspective,
             translateY,
             scaleX: scale,
             scaleY: scale,

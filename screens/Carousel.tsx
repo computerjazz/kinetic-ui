@@ -61,6 +61,7 @@ class CardStack extends Component {
     this.perspective = new Value(850)
     this.clock = new Clock()
     this.altClock = new Clock()
+    this._mounted = new Value(1)
 
 
     this.animState = {
@@ -108,7 +109,12 @@ class CardStack extends Component {
       const runClock = [
         cond(clockRunning(this.clock), [
           timing(this.clock, this.animState, this.animConfig),
-          cond(and(this.animState.finished, clockRunning(this.clock)), [
+          cond(
+            or(
+              not(this._mounted),
+              and(this.animState.finished, clockRunning(this.clock))
+            ),
+             [
             stopClock(this.clock),
             set(this.prevTrans, add(this.prevTrans, this.animState.position)),
             set(this.animState.position, 0),
@@ -304,6 +310,16 @@ class CardStack extends Component {
 
   velocity = new Value(0)
 
+  componentDidMount() {
+    this.willBlurSub = this.props.navigation.addListener('willBlur', () => {
+      this._mounted.setValue(0)
+    })
+  }
+
+  componentWillUnmount() {
+    this.willBlurSub && this.willBlurSub.remove()
+  }
+
   render() {
     return (
       <View style={{
@@ -312,7 +328,7 @@ class CardStack extends Component {
       }}>
         <TapGestureHandler
           onHandlerStateChange={event([
-            {nativeEvent: ({ state }) => block([
+            { nativeEvent: ({ state }) => block([
               cond(eq(state, State.BEGAN), [ 
                 cond(clockRunning(this.clock), [
                   set(this.altState.position, this._temp),
@@ -391,7 +407,9 @@ class CardStack extends Component {
         </PanGestureHandler>
         </Animated.View>
           </TapGestureHandler>
-        <BackButton color="#ddd" onPress={() => {
+        <BackButton color="#ddd" 
+        onPress={() => {
+          // this._mounted.setValue(0)
           this.props.navigation.goBack(null)
         }} />
       </View>

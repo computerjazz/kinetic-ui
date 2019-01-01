@@ -28,7 +28,7 @@ const isAndroid = Platform.OS === 'android'
 
 class FlipPreview extends React.Component {
 
-  constructor({ width, height }) {
+  constructor({ clock, focused, width, height }) {
     super()
     const size = width / 2
     const numCards = 7
@@ -55,8 +55,6 @@ class FlipPreview extends React.Component {
       easing: Easing.linear,
     }
 
-    const clock = new Clock()
-
     const runClock = [
       cond(clockRunning(clock), [
         timing(clock, previewState, previewConfig),
@@ -75,7 +73,11 @@ class FlipPreview extends React.Component {
     ]
 
     this._cy = add(this.prevY, this.translationY)
-    this._cx = add(this.prevX, this.translationX, runClock)
+    this._cx = add(
+      this.prevX, 
+      this.translationX, 
+      cond(focused, runClock, 0)
+      )
 
     this._iy = Animated.interpolate(this._cy, {
       inputRange: [-size, 0, size],
@@ -130,9 +132,6 @@ class FlipPreview extends React.Component {
       restSpeedThreshold: 0.001,
       restDisplacementThreshold: 0.001,
     };
-
-    this.clock = new Clock()
-
 
 
     this.diffX = new Value(0)

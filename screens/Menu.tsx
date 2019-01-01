@@ -3,26 +3,41 @@ import { Text, View, TouchableOpacity, StyleSheet, Dimensions, ScrollView } from
 import StackPreview from '../components/StackPreview'
 import CarouselPreview from '../components/CarouselPreview'
 import FlipPreview from '../components/FlipPreview'
+import { Transition } from 'react-navigation-fluid-transitions'
 
 const { width, height } = Dimensions.get('window')
+import Animated from 'react-native-reanimated'
+const { Clock, Value } = Animated
 
 const screens = [
   {
     title: 'Stack',
+    screen: 'Stack',
     Preview: StackPreview,
   }, 
   {
     title: 'Carousel',
+    screen: 'Carousel',
     Preview: CarouselPreview,
   }, 
   {
     title: 'Flip',
+    screen: 'Flip',
     Preview: FlipPreview
   }]
 
 class Menu extends Component {
+  clock = new Clock()
+  focused = new Value(0)
 
-  renderOption = ({title, Preview }) => (
+  componentDidMount() {
+
+    this.didFocusSub = this.props.navigation.addListener('didFocus', () => {
+      // setTimeout(() => this.focused.setValue(1), 1000)
+    })
+  }
+
+  renderOption = ({title, screen, Preview }) => (
     <TouchableOpacity 
     key={`menu-option-${title}`} 
     style={{ 
@@ -31,8 +46,13 @@ class Menu extends Component {
       justifyContent: 'center',
       width: width / 2,
       height: width / 2,
-    }} onPress={() => this.props.navigation.navigate(title)}>
-    {!!Preview ? <Preview width={width / 2} height={width / 2} /> : (
+    }} onPress={() => {
+      this.focused.setValue(0)
+      this.props.navigation.navigate(screen)
+    }}>
+    {!!Preview ? 
+      <Preview focused={this.focused} clock={this.clock} width={width / 2} height={width / 2} /> 
+      : (
       <View
         style={{
             flex: 1,

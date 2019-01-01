@@ -12,7 +12,7 @@ import CardFlip from './screens/CardFlip'
 import CardStack from './screens/CardStack'
 import Carousel from './screens/Carousel'
 
-const Stack = createFluidNavigator({
+const Stack = createStackNavigator({
   Flower: { screen: Flower },
   Menu: { screen: Menu },
   Lanterns: { screen: Lanterns },
@@ -29,6 +29,7 @@ const Stack = createFluidNavigator({
 const Navigator = createAppContainer(Stack)
 
 export default class App extends Component {
+
   render() {
     return (
       <React.Fragment>

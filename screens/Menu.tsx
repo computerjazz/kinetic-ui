@@ -24,7 +24,13 @@ const screens = [
     title: 'Flip',
     screen: 'Flip',
     Preview: FlipPreview
-  }]
+  },
+  {
+    title: 'Deck',
+    screen: 'Deck',
+  },
+
+]
 
 class Menu extends Component {
   clock = new Clock()
@@ -77,6 +83,7 @@ class Menu extends Component {
         contentContainerStyle={{
           alignItems: 'center',
           marginTop: 20,
+          paddingBottom: 20,
         }}
       >
       {screens.map(this.renderOption)}

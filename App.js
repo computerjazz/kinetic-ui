@@ -11,6 +11,7 @@ import CardRotate from './screens/CardRotate'
 import CardFlip from './screens/CardFlip'
 import CardStack from './screens/CardStack'
 import Carousel from './screens/Carousel'
+import Deck from './screens/Deck'
 
 const Stack = createStackNavigator({
   Flower: { screen: Flower },
@@ -20,6 +21,7 @@ const Stack = createStackNavigator({
   Card: { screen: CardRotate },
   Stack: { screen: CardStack },
   Carousel: { screen: Carousel },
+  Deck: { screen: Deck },
   Flip: { screen: CardFlip },
 }, {
   initialRouteName: 'Menu',
@@ -35,7 +37,7 @@ export default class App extends Component {
       <React.Fragment>
         <StatusBar hidden />
 
-      <Navigator />
+      <Navigator persistenceKey="app" />
       </React.Fragment>
     );
   }

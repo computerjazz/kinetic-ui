@@ -155,12 +155,59 @@ class Deck extends Component {
         index: colorIndex,
         gestureState,
         rotateZ,
+        touchScale: new Value(0),
+        clock: new Clock(),
+        state: {
+          position: new Value(0),
+          finished: new Value(0),
+          time: new Value(0),
+          frameTime: new Value(0),
+        },
+        config: {      
+          toValue: new Value(1),
+          duration: 250,
+          easing: Easing.inOut(Easing.ease),
+        }
       }
     })
   }
 
 
-  renderCard = ({ color, scale, translateY, translateX, zIndex, size, rotateZ, gestureState, index }, i) => {
+  renderCard = ({ 
+    color, 
+    scale, 
+    translateY, 
+    translateX, 
+    zIndex, 
+    size, 
+    rotateZ, 
+    gestureState, 
+    index, 
+    clock,
+    state,
+    config,
+  }, i) => {
+    const runClock = block([
+      cond(clockRunning(clock), [
+        timing(clock, state, config),
+        cond(state.finished, [
+          stopClock(clock),
+          set(state.position, 0),
+          set(state.frameTime, 0),
+          set(state.time, 0),
+          set(state.finished, 0),
+        ]),
+      ]),
+      state.position,
+    ])
+
+    const ic = Animated.interpolate(runClock, {
+      inputRange: [0, 0.5, 1],
+      outputRange: [0, 0.1, 0],
+    })
+
+    const scaleXY = add(scale, ic)
+
     return (
       <Animated.View
         key={`card-${i}`}
@@ -178,13 +225,38 @@ class Deck extends Component {
           transform: [{
             translateY,
             translateX,
-            scaleX: scale,
-            scaleY: scale,
+            scaleX: scaleXY,
+            scaleY: scaleXY,
             rotateZ,
           }]
         }}
       >
-          <Animated.View style={{ flex: 1, width: size, alignItems: 'flex-end', justifyContent: 'flex-end', padding: 10 }}>
+      <TapGestureHandler
+         onHandlerStateChange={event([{
+           nativeEvent: ({ state }) => block([
+
+             cond(and(greaterThan(abs(this.cumulativeTrans), 50), eq(state, State.BEGAN), neq(gestureState, State.BEGAN)), [
+               debug('began', gestureState),
+             ]),
+             cond(and(eq(state, State.END), neq(gestureState, State.END)), [
+               debug('end', gestureState),
+               startClock(clock),
+             ]),
+             cond(and(eq(state, State.FAILED), neq(gestureState, State.FAILED)), [
+               debug('fail', gestureState),
+             ]),
+             set(gestureState, state),
+
+           ])
+         }])}
+      >
+          <Animated.View style={{ 
+            flex: 1, 
+            width: size, 
+            alignItems: 'flex-end', 
+            justifyContent: 'flex-end', 
+            padding: 10 
+          }}>
             <Text style={{
               color: 'seashell',
               fontSize: 30,
@@ -193,6 +265,7 @@ class Deck extends Component {
               {}
             </Text>
           </Animated.View>
+          </TapGestureHandler>
       </Animated.View>
     )
   }

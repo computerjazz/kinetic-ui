@@ -130,7 +130,9 @@ class Deck extends Component {
       })
 
       const xOffset = width / 4
-      const ix = add(multiply(ry, cos(ratio), -xOffset), multiply(ry, xOffset))
+      const ix = multiply(
+        abs(add(multiply(ry, cos(ratio), -xOffset), multiply(ry, xOffset))),
+      -1)
 
       const rotateZ = Animated.interpolate(ry, {
         inputRange: [0, 1],
@@ -182,10 +184,10 @@ class Deck extends Component {
           }]
         }}
       >
-          <Animated.View style={{ flex: 1, width: size }}>
+          <Animated.View style={{ flex: 1, width: size, alignItems: 'flex-end', justifyContent: 'flex-end', padding: 10 }}>
             <Text style={{
-              color: 'white',
-              fontSize: 70,
+              color: 'seashell',
+              fontSize: 30,
               fontWeight: 'bold',
             }}>
               {}

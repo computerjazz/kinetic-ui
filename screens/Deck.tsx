@@ -82,9 +82,6 @@ class Deck extends Component {
       set(this.sprState.finished, 0),
       set(this.sprState.velocity, 0),
       set(this.prevTrans, this.sprConfig.toValue),
-      debug('reset: pos', this.sprState.position),
-      debug('reset: trans', this.prevTrans),
-      debug('reset: tOVal', this.sprConfig.toValue),
     ]
 
     const runClock = cond(clockRunning(this.clock), [
@@ -120,33 +117,29 @@ class Deck extends Component {
       //
 
       // const maxY = height / (i + 1.75)
-      const multiplier = (midpoint - i) / arr.length
-      const maxY = multiplier * height
-
+      const distFromMid = midpoint - i
+      const ratio = distFromMid / midpoint
+      const multiplier = ratio
+      const maxY = multiplier * (height / 5)
+      const scaleMultiplier = 1- (i * (1 / arr.length))
 
 
       const iy = Animated.interpolate(ry, {
-        inputRange: [0, 1],
-        outputRange: [i * 5, maxY],
+        inputRange: [-0.5 ,0, 0.5],
+        outputRange: [-maxY, i*5, maxY],
       })
 
-      // const x = cos(multiply(ry, multiplier))
-      const x = cos(i / arr.length)
-
-      const ix = Animated.interpolate([debug(`index ${i} x`, x), x], {
-        inputRange: [-.5, 0, .5],
-        outputRange: [0, 0, 0], 
-      })
+      const xOffset = width / 4
+      const ix = add(multiply(ry, cos(ratio), -xOffset), multiply(ry, xOffset))
 
       const rotateZ = Animated.interpolate(ry, {
         inputRange: [0, 1],
         outputRange: [0, multiplier * Math.PI / 2],
       })
 
-
       const scale = Animated.interpolate(ry, {
-        inputRange: [0, 1],
-        outputRange: [1 - (i * .01), 1],
+        inputRange: [-0.5, 0, 0.5],
+        outputRange: [1, 1 + scaleMultiplier * 0.1, 1],
       })
     
       const colorIndex = i
@@ -181,7 +174,6 @@ class Deck extends Component {
           zIndex,
           opacity: 0.8,
           transform: [{
-            perspective: this.perspective,
             translateY,
             translateX,
             scaleX: scale,

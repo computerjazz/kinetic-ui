@@ -3,6 +3,7 @@ import { Text, View, TouchableOpacity, StyleSheet, Dimensions, ScrollView } from
 import StackPreview from '../components/StackPreview'
 import CarouselPreview from '../components/CarouselPreview'
 import FlipPreview from '../components/FlipPreview'
+import DeckPreview from '../components/DeckPreview'
 import { Transition } from 'react-navigation-fluid-transitions'
 
 const { width, height } = Dimensions.get('window')
@@ -23,11 +24,12 @@ const screens = [
   {
     title: 'Flip',
     screen: 'Flip',
-    Preview: FlipPreview
+    Preview: FlipPreview,
   },
   {
     title: 'Deck',
     screen: 'Deck',
+    Preview: DeckPreview,
   },
 
 ]

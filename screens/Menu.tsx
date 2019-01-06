@@ -31,6 +31,10 @@ const screens = [
     screen: 'Deck',
     Preview: DeckPreview,
   },
+  {
+    title: 'Grid',
+    screen: 'Grid',
+  },
 
 ]
 

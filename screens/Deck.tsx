@@ -342,11 +342,7 @@ class Deck extends Component {
             {this.cards.map(this.renderCard)}
           </Animated.View>
         </PanGestureHandler>
-        <BackButton color="#ddd"
-
-          onPress={() => {
-            this.props.navigation.goBack(null)
-          }} />
+        <BackButton color="#ddd" onPress={() => this.props.navigation.goBack(null)} />
       </View>
 
     )

@@ -12,6 +12,7 @@ import CardFlip from './screens/CardFlip'
 import CardStack from './screens/CardStack'
 import Carousel from './screens/Carousel'
 import Deck from './screens/Deck'
+import Grid from './screens/Grid'
 
 const Stack = createStackNavigator({
   Flower: { screen: Flower },
@@ -23,6 +24,7 @@ const Stack = createStackNavigator({
   Carousel: { screen: Carousel },
   Deck: { screen: Deck },
   Flip: { screen: CardFlip },
+  Grid: { screen: Grid },
 }, {
   initialRouteName: 'Menu',
   headerMode: 'none',

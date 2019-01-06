@@ -47,6 +47,7 @@ const numCards = 7
 const maxIndex = numCards - 1
 const colorMultiplier = 255 / maxIndex
 
+
 class Card extends Component {
 
   constructor() {
@@ -56,6 +57,7 @@ class Card extends Component {
     this.translationX = new Value(0)
     this.translationY = new Value(0)
     this.gestureState = new Value(State.UNDETERMINED)
+    this.tapState = new Value(State.UNDETERMINED)
     this.prevX = new Value(0)
     this.prevY = new Value(0)
 
@@ -116,7 +118,25 @@ class Card extends Component {
       restDisplacementThreshold: 0.001,
     };
 
+    this.tapSpr = {
+      finished: new Value(0),
+      velocity: new Value(0),
+      position: new Value(0),
+      time: new Value(0),
+    };
+
+    this.tapCfg = {
+      damping: 12,
+      mass: 1,
+      stiffness: 100,
+      overshootClamping: false,
+      toValue: new Value(1),
+      restSpeedThreshold: 0.01,
+      restDisplacementThreshold: 0.01,
+    };
+
     this.clock = new Clock()
+    this.tapClock = new Clock()
 
     const isActive = [
       cond(eq(this.gestureState, State.ACTIVE), 1, 0)
@@ -191,6 +211,31 @@ class Card extends Component {
   }
 
   render() {
+
+    const runClock = [
+      cond(clockRunning(this.tapClock), [
+        spring(this.tapClock, this.tapSpr, this.tapCfg),
+        cond(this.tapSpr.finished, [
+          stopClock(this.tapClock),
+          set(this.tapSpr.position, 0),
+          set(this.tapSpr.time, 0),
+          set(this.tapSpr.velocity, 0),
+          set(this.tapSpr.finished, 0),
+        ])
+      ]),
+      this.tapSpr.position
+    ]
+
+    const scale = Animated.interpolate(runClock, {
+      inputRange: [0, 0.5, 1],
+      outputRange: [1, 1.1, 1],
+    })
+
+    const shadowScale = Animated.interpolate(runClock, {
+      inputRange: [0, 0.5, 1],
+      outputRange: [1, .95, 1],
+    })
+
     return (
       <PanGestureHandler
         onGestureEvent={event([{
@@ -219,6 +264,7 @@ class Card extends Component {
           justifyContent: 'center' 
         }}
         >
+
         <Animated.View 
           style={{
             position: 'absolute',
@@ -234,9 +280,24 @@ class Card extends Component {
                   perspective: this.perspective,
                   rotateX: this._x,
                   rotateY: this._y,
+                  scaleX: shadowScale,
+                  scaleY: shadowScale,
                 }]
           }}
         />
+        <TapGestureHandler
+          onHandlerStateChange={event([{
+            nativeEvent: ({ state }) => block([
+              // debug('state change', this.tapSpr.position),
+
+              cond(and(neq(this.tapState, State.END), eq(state, State.END)), [
+                debug('tarting clock', this.tapSpr.position),
+                startClock(this.tapClock)
+              ]),
+              set(this.tapState, state)
+            ])
+          }])}
+        >
           <Animated.View
             style={{
               opacity: 0.8,
@@ -251,11 +312,14 @@ class Card extends Component {
                   perspective: this.perspective,
                   rotateX: this._x,
                   rotateY: this._y,
+                  scaleX: scale,
+                  scaleY: scale,
                 }]
             }}
           >
           <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white'}}>{}</Text>
           </Animated.View>
+          </TapGestureHandler>
 
           <BackButton color="#ddd" onPress={() => this.props.navigation.goBack(null)} />
         </Animated.View>

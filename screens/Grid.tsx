@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Dimensions, View, StyleSheet } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated'
 import BackButton from '../components/BackButton'
-import { PanGestureHandler } from 'react-native-gesture-handler';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 const { height, width } = Dimensions.get('window')
 
 const {
@@ -37,66 +37,111 @@ const {
   modulo,
   abs,
   cos,
+  max,
+  min,
 } = Animated;
 
 const cardsPerRow = 8
 const numCards = Math.pow(cardsPerRow, 2)
 const cardSize = width / Math.sqrt(numCards)
 const padding = cardSize / 20
+const wiggleRoom = 4 * cardSize
 
 class Grid extends React.Component {
 
   constructor() {
     super()
-    this.panX = new Value(0)
-    this.panY = new Value(0)
+    this.pan = new Value(0)
+    this.gestureState = new Value(State.UNDETERMINED),
+    this.translationX = new Value(0)
+    this.translationY = new Value(0)
     this.screenX = new Value(0)
     this.screenY = new Value(0)
+    this.clock = new Clock()
+
+    this.sprState = {
+      finished: new Value(0),
+      velocity: new Value(0),
+      position: new Value(0),
+      time: new Value(0),
+    }
+
+    this.sprConfig = {
+      damping: 20,
+      mass: 0.3,
+      stiffness: 30,
+      overshootClamping: false,
+      toValue: new Value(0),
+      restSpeedThreshold: 0.001,
+      restDisplacementThreshold: 0.001,
+    }
+
+    const runClock = [
+      cond(clockRunning(this.clock), [
+        spring(this.clock, this.sprState, this.sprConfig),
+        cond(this.sprState.finished, [
+          debug('stopping', this.sprState.position),
+          stopClock(this.clock),
+          set(this.sprState.finished, 0),
+          set(this.sprState.velocity, 0),
+          set(this.sprState.time, 0),
+          set(this.sprState.position, 0),
+          set(this.screenX, 0),
+          set(this.screenY, 0),
+        ])
+      ]),
+      this.sprState.position,
+    ]
+
+    this.panRatio = Animated.interpolate(this.pan, {
+      inputRange: [0, 100],
+      outputRange: [0, 1],
+      extrapolate: Animated.Extrapolate.CLAMP,
+    })
+
+    const multiplier = min(add(this.panRatio, runClock), 1)
 
     this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
       const row = Math.floor(i / cardsPerRow)
       const col = i - (cardsPerRow * row)
       const centerX = cardSize * row + cardSize / 2
       const centerY = cardSize * col + cardSize / 2
-      console.log(`[${row}, ${col}]`)
+      // console.log(`[${row}, ${col}]`)
       const colorMultiplier = 255 / (arr.length - 1)
 
-      const wiggle = 2 * cardSize
-      const diffX = Animated.interpolate(abs(sub(centerX, this.screenX)), {
-        inputRange: [0, wiggle],
-        outputRange: [1, 0],
+      const subX = sub(centerY, this.screenX)
+      const subY = sub(centerX, this.screenY)
+
+      const diffX = Animated.interpolate(subX, {
+        inputRange: [-wiggleRoom, 0, wiggleRoom],
+        outputRange: [0, 1, 0],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
-      const diffY = Animated.interpolate(abs(sub(centerY, this.screenY)), {
-        inputRange: [0, wiggle],
-        outputRange: [1, 0],
+      
+      const diffY = Animated.interpolate(subY, {
+        inputRange: [-wiggleRoom, 0, wiggleRoom],
+        outputRange: [0, 1, 0],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
 
-      const ipx = Animated.interpolate(this.screenY, {
-        inputRange: [centerX - wiggle, centerX + wiggle],
-        outputRange: [0, 1],
-        extrapolate: Animated.Extrapolate.CLAMP,
-      })
+      const rotateAmtX = multiply(diffX, multiplier)
+      const rotateAmtY = multiply(diffY, multiplier)
 
-      const ipy = Animated.interpolate(this.screenX, {
-        inputRange: [centerY - wiggle, centerY + wiggle],
-        outputRange: [0, 1],
-        extrapolate: Animated.Extrapolate.CLAMP,
-      })
-
-      const rotateX = Animated.interpolate(multiply(ipx, diffY), {
+      const rotateX = Animated.interpolate(rotateAmtX, {
         inputRange: [0, 1],
-        outputRange: [0, Math.PI],
+        outputRange: [0, Math.PI / 2],
       })
-      const rotateY = Animated.interpolate(multiply(ipy, diffX), {
+      const rotateY = Animated.interpolate(rotateAmtY, {
         inputRange: [0, 1],
-        outputRange: [0, -Math.PI],
+        outputRange: [0, -Math.PI / 2],
       })
+
+      const color = `rgba(${i * colorMultiplier}, ${Math.abs(128 - i * colorMultiplier)}, ${255 - (i * colorMultiplier)}, 0.9)`
+
       return {
-        color: `rgba(${i * colorMultiplier}, ${Math.abs(128 - i * colorMultiplier)}, ${255 - (i * colorMultiplier)}, 0.9)`,
-        rotateX,
-        rotateY,
+        color,
+        rotateX: multiply(rotateX, diffY),
+        rotateY: multiply(rotateY, diffX),
       }
     })
   }
@@ -138,11 +183,43 @@ class Grid extends React.Component {
       }}>
       <PanGestureHandler
         onGestureEvent={event([{
-          nativeEvent: ({ translationX, translationY, x, y }) => block([
-            set(this.panX, translationX),
-            set(this.panY, translationY),
-            set(this.screenX, x),
-            set(this.screenY, y),
+          nativeEvent: ({ translationX, translationY, x, y, state }) => block([
+            cond(eq(this.gestureState, State.ACTIVE), [
+              cond(clockRunning(this.clock), [
+                stopClock(this.clock),
+                set(this.sprState.finished, 0),
+                set(this.sprState.velocity, 0),
+                set(this.sprState.time, 0),
+                set(this.sprState.position, 0),
+              ]),
+              set(this.pan, 
+                add(
+                  this.pan, 
+                  abs(sub(this.translationX, translationX)),
+                  abs(sub(this.translationY, translationY)),
+                  )
+              ),
+              set(this.translationX, translationX),
+              set(this.translationY, translationY),
+              set(this.screenX, x),
+              set(this.screenY, y),
+            ])
+          ])
+        }])}
+        onHandlerStateChange={event([{
+          nativeEvent: ({ state }) => block([
+            cond(and(neq(state, State.ACTIVE), eq(this.gestureState, State.ACTIVE)), [
+              set(this.sprState.position, this.panRatio),
+              set(this.pan, 0),
+              set(this.translationX, 0),
+              set(this.translationY, 0),
+              debug('reset pan', this.pan),
+              debug('reset transX', this.translationX),
+              debug('reset screenX', this.screenX),
+              debug('reset panRatio', this.panRatio),
+              startClock(this.clock),
+            ]),
+            set(this.gestureState, state)
           ])
         }])}
       >

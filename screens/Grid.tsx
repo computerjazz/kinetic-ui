@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Dimensions, View, StyleSheet } from 'react-native'
+import { Dimensions, View, StyleSheet, Text } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated'
 import BackButton from '../components/BackButton'
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
@@ -42,10 +42,13 @@ const {
 } = Animated;
 
 const cardsPerRow = 8
+const engageDist = width / 8
+
 const numCards = Math.pow(cardsPerRow, 2)
 const cardSize = width / Math.sqrt(numCards)
+const influenceDist = width / 2 
 const padding = cardSize / 20
-const wiggleRoom = 4 * cardSize
+const gravity = Math.PI / 2
 
 class Grid extends React.Component {
 
@@ -80,7 +83,6 @@ class Grid extends React.Component {
       cond(clockRunning(this.clock), [
         spring(this.clock, this.sprState, this.sprConfig),
         cond(this.sprState.finished, [
-          debug('stopping', this.sprState.position),
           stopClock(this.clock),
           set(this.sprState.finished, 0),
           set(this.sprState.velocity, 0),
@@ -94,7 +96,7 @@ class Grid extends React.Component {
     ]
 
     this.panRatio = Animated.interpolate(this.pan, {
-      inputRange: [0, 100],
+      inputRange: [0, engageDist],
       outputRange: [0, 1],
       extrapolate: Animated.Extrapolate.CLAMP,
     })
@@ -104,49 +106,68 @@ class Grid extends React.Component {
     this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
       const row = Math.floor(i / cardsPerRow)
       const col = i - (cardsPerRow * row)
-      const centerX = cardSize * row + cardSize / 2
-      const centerY = cardSize * col + cardSize / 2
+      const centerY = cardSize * row + cardSize / 2
+      const centerX = cardSize * col + cardSize / 2
       // console.log(`[${row}, ${col}]`)
       const colorMultiplier = 255 / (arr.length - 1)
 
-      const subX = sub(centerY, this.screenX)
-      const subY = sub(centerX, this.screenY)
+      const diffX = sub(centerX, this.screenX)
+      const diffY = sub(centerY, this.screenY)
 
-      const diffX = Animated.interpolate(subX, {
-        inputRange: [-wiggleRoom, 0, wiggleRoom],
-        outputRange: [0, 1, 0],
+      const diffXRatio = Animated.interpolate(diffX, {
+        inputRange: [-influenceDist, 0, influenceDist],
+        outputRange: [-1, 0, 1],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
       
-      const diffY = Animated.interpolate(subY, {
-        inputRange: [-wiggleRoom, 0, wiggleRoom],
+      const diffYRatio = Animated.interpolate(diffY, {
+        inputRange: [-influenceDist, 0, influenceDist],
+        outputRange: [-1, 0, 1],
+        extrapolate: Animated.Extrapolate.CLAMP,
+      })
+
+      const pctY = Animated.interpolate(diffYRatio, {
+        inputRange: [-1, 0, 1],
         outputRange: [0, 1, 0],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
 
-      const rotateAmtX = multiply(diffX, multiplier)
-      const rotateAmtY = multiply(diffY, multiplier)
-
-      const rotateX = Animated.interpolate(rotateAmtX, {
-        inputRange: [0, 1],
-        outputRange: [0, Math.PI / 2],
+      const pctX = Animated.interpolate(diffXRatio, {
+        inputRange: [-1, 0, 1],
+        outputRange: [0, 1, 0],
+        extrapolate: Animated.Extrapolate.CLAMP,
       })
-      const rotateY = Animated.interpolate(rotateAmtY, {
-        inputRange: [0, 1],
-        outputRange: [0, -Math.PI / 2],
+
+      const rotateAmtX = diffXRatio
+      const rotateAmtY = diffYRatio
+
+      const rotateY = Animated.interpolate(rotateAmtX, {
+        inputRange: [-1, -0.25, 0, 0.25, 1],
+        outputRange: [0, -gravity, 0, gravity, 0],
+        extrapolate: Animated.Extrapolate.CLAMP,
+      })
+
+      const rotateX = Animated.interpolate(rotateAmtY, {
+        inputRange: [-1, -0.25, 0, 0.25, 1],
+        outputRange: [0, gravity, 0, -gravity, 0],
+        extrapolate: Animated.Extrapolate.CLAMP,
       })
 
       const color = `rgba(${i * colorMultiplier}, ${Math.abs(128 - i * colorMultiplier)}, ${255 - (i * colorMultiplier)}, 0.9)`
 
       return {
         color,
-        rotateX: multiply(rotateX, diffY),
-        rotateY: multiply(rotateY, diffX),
+        rotateX: multiply(rotateX, pctX, multiplier),
+        rotateY: multiply(rotateY, pctY, multiplier),
+        scale: Animated.interpolate(multiply(add(pctX, pctY), multiplier), {
+          inputRange: [0, 2],
+          outputRange: [1, 0.85],
+        })
       }
     })
   }
 
-  renderCard = ({ color, rotateX, rotateY }, index) => {
+  renderCard = ({ color, rotateX, rotateY, scale }, index) => {
     return (
       <Animated.View 
         key={`grid-card-${index}`}
@@ -164,9 +185,13 @@ class Grid extends React.Component {
             transform: [{
               rotateX,
               rotateY,
+              scaleX: scale,
+              scaleY: scale,
             }]
           }}
-        />
+        >
+        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14}}>{}</Text>
+        </Animated.View>
 
       </Animated.View>
     )
@@ -213,10 +238,6 @@ class Grid extends React.Component {
               set(this.pan, 0),
               set(this.translationX, 0),
               set(this.translationY, 0),
-              debug('reset pan', this.pan),
-              debug('reset transX', this.translationX),
-              debug('reset screenX', this.screenX),
-              debug('reset panRatio', this.panRatio),
               startClock(this.clock),
             ]),
             set(this.gestureState, state)

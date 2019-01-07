@@ -2,6 +2,7 @@ import * as React from 'react'
 import { View, Platform, Text, StyleSheet } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated'
 import { Transition } from 'react-navigation-fluid-transitions'
+import MenuTitle from './MenuTitle';
 const {
   Value,
   modulo,
@@ -228,22 +229,7 @@ class FlipPreview extends React.Component {
               }]
           }}
         />
-
-
-
-        <View style={{
-          ...StyleSheet.absoluteFillObject,
-          zIndex: 9999,
-          alignItems: 'center',
-          justifyContent: 'center',
-
-        }}>
-          <Text style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: 'seashell',
-          }}>FLIP</Text>
-        </View>
+        <MenuTitle text="FLIP" />
       </View>
     )
   }

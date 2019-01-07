@@ -2,6 +2,7 @@ import * as React from 'react'
 import { View, Platform, Text, StyleSheet } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated'
 import { Transition } from 'react-navigation-fluid-transitions'
+import MenuTitle from './MenuTitle';
 const {
   Value,
   modulo,
@@ -256,21 +257,7 @@ class CarouselPreview extends React.Component {
 
         {this.cards.map(this.renderCard)}
 
-
-
-        <View style={{
-          ...StyleSheet.absoluteFillObject,
-          zIndex: 9999,
-          alignItems: 'center',
-          justifyContent: 'center',
-
-        }}>
-          <Text style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: 'seashell',
-          }}>CAROUSEL</Text>
-      </View>
+      <MenuTitle text="CAROUSEL" />
       </View>
           )
         }

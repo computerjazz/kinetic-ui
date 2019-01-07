@@ -3,6 +3,7 @@ import { View, Dimensions, Text, Platform, StyleSheet } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 import BackButton from '../components/BackButton'
+import MenuTitle from './MenuTitle';
 
 const isAndroid = Platform.OS === 'android'
 
@@ -252,19 +253,7 @@ class Deck extends Component {
             {this.cards.map(this.renderCard)}
           </Animated.View>
 
-        <View style={{
-          ...StyleSheet.absoluteFillObject,
-          zIndex: 9999,
-          alignItems: 'center',
-          justifyContent: 'center',
-
-        }}>
-          <Text style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: 'seashell',
-          }}>DECK</Text>
-        </View>
+        <MenuTitle text="DECK" />
       </View>
 
     )

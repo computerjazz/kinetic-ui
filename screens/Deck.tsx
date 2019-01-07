@@ -70,11 +70,11 @@ class Deck extends Component {
       this.sprConfig = {
         damping: 20,
         mass: 0.3,
-        stiffness: 30,
+        stiffness: 70,
         overshootClamping: false,
         toValue: new Value(0),
-        restSpeedThreshold: 0.01,
-        restDisplacementThreshold: 0.01,
+        restSpeedThreshold: 0.05,
+        restDisplacementThreshold: 0.05,
       }
 
     const resetSpring = [

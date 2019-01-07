@@ -229,7 +229,6 @@ class CardStack extends Component {
         ref={handlerRef}
         simultaneousHandlers={this.mainHandler}
         onGestureEvent={event([{
-          
           nativeEvent: ({ translationY, state }) => block([
             cond(eq(cardGestureState, State.ACTIVE), [
               set(cardTransY, translationY),

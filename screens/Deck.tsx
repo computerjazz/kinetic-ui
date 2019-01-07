@@ -57,6 +57,7 @@ class Deck extends Component {
     this.perspective = new Value(850)
     this.clock = new Clock()
     this._mounted = new Value(1)
+    this.left = new Value(0)
 
 
     this.sprState = {
@@ -72,8 +73,8 @@ class Deck extends Component {
         stiffness: 30,
         overshootClamping: false,
         toValue: new Value(0),
-        restSpeedThreshold: 0.001,
-        restDisplacementThreshold: 0.001,
+        restSpeedThreshold: 0.01,
+        restDisplacementThreshold: 0.01,
       }
 
     const resetSpring = [
@@ -130,6 +131,7 @@ class Deck extends Component {
       })
 
       const xOffset = width / 4
+
       const ix = multiply(
         abs(add(multiply(ry, cos(ratio), -xOffset), multiply(ry, xOffset))),
       -1)
@@ -150,11 +152,11 @@ class Deck extends Component {
         scale,
         zIndex: -i,
         translateY: iy,
-        translateX: ix,
+        translateX: cond(this.left, multiply(ix, -1), ix),
         size,
         index: colorIndex,
         gestureState,
-        rotateZ,
+        rotateZ: cond(this.left, multiply(rotateZ, -1), rotateZ),
         touchScale: new Value(0),
         clock: new Clock(),
         state: {
@@ -292,7 +294,8 @@ class Deck extends Component {
         <PanGestureHandler
           ref={this.mainHandler}
           onGestureEvent={event([{
-            nativeEvent: ({ translationY: y, velocityY, state }) => block([
+            nativeEvent: ({ translationY: y, velocityY, state, x }) => block([
+
               cond(eq(this.gestureState, State.ACTIVE), [
                 set(this.translationY, y),
                 set(this.velocity, velocityY),
@@ -300,7 +303,18 @@ class Deck extends Component {
             ])
           }])}
           onHandlerStateChange={event([{
-            nativeEvent: ({ state, velocityY }) => block([
+            nativeEvent: ({ state, velocityY, x }) => block([
+              cond(
+                and(
+                  eq(state, State.ACTIVE),
+                  neq(this.gestureState, State.ACTIVE),
+                  eq(this.cumulativeTrans, 0),
+                ), [
+                  set(this.left, cond(lessThan(x, width / 2), 1, 0)),
+                  debug('left', this.left),
+                  // debug('gestureState', this.gestureState),
+                ]
+              ),
               cond(
                 and(
                   eq(this.gestureState, State.ACTIVE), 

@@ -308,7 +308,7 @@ class Deck extends Component {
                 and(
                   eq(state, State.ACTIVE),
                   neq(this.gestureState, State.ACTIVE),
-                  eq(this.cumulativeTrans, 0),
+                  lessThan(abs(this.cumulativeTrans), 10),
                 ), [
                   set(this.left, cond(lessThan(x, width / 2), 1, 0)),
                   debug('left', this.left),

@@ -39,6 +39,7 @@ const {
   modulo,
   abs,
   cos,
+  color,
 } = Animated;
 
 const numCards = 7
@@ -70,7 +71,7 @@ class Book extends React.Component {
     this.panIndex = new Value(0)
     this.cards = [...Array(numCards)].fill(0).map((d, index, arr) => {
       const colorMultiplier = 255 / (arr.length - 1)
-      const color = `rgba(${index * colorMultiplier}, ${Math.abs(128 - index * colorMultiplier)}, ${255 - (index * colorMultiplier)}, 0.9)`
+      // const color = `rgba(${index * colorMultiplier}, ${Math.abs(128 - index * colorMultiplier)}, ${255 - (index * colorMultiplier)}, 0.9)`
 
       const rotateY = Animated.interpolate(transToIndex, {
         inputRange: [index - 2, index, index + 2],
@@ -84,19 +85,30 @@ class Book extends React.Component {
         extrapolate: Animated.Extrapolate.CLAMP,
       })
 
+      const colorIndex = cond(
+          greaterThan(index, transToIndex), [
+            index-1
+          ],
+          index
+      )
+
+      const c = multiply(colorIndex, colorMultiplier)
+      const r = round(c)
+      const g = round(abs(sub(128, c)))
+      const b = round(sub(255, c))
+      const cardColor = color(r, g, b)
 
       return {
-        color,
+        color: cardColor,
         width,
         height,
         rotateY,
-        translateX: 0,
         zIndex,
       }
     })
   }
 
-  renderCard = ({ color, width, height, rotateY, translateX, zIndex }, index) => {
+  renderCard = ({ color, width, height, rotateY, translateX, translateY, zIndex }, index) => {
 
 
     return (
@@ -107,9 +119,6 @@ class Book extends React.Component {
           width: width * 2,
           height,
           zIndex,
-          transform: [{
-            translateX,
-          }]
         }}
       >
         <Animated.View style={{
@@ -123,6 +132,7 @@ class Book extends React.Component {
           }]
         }} >
           <Animated.View style={{
+            opacity: 0.85,
             borderTopLeftRadius: 10,
             borderBottomLeftRadius: 10,
             backgroundColor: color,

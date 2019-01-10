@@ -37,6 +37,10 @@ const screens = [
     screen: 'Grid',
     Preview: GridPreview,
   },
+  {
+    title: "Book",
+    screen: "Book",
+  },
 
 ]
 

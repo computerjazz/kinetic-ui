@@ -5,6 +5,7 @@ import CarouselPreview from '../components/CarouselPreview'
 import FlipPreview from '../components/FlipPreview'
 import DeckPreview from '../components/DeckPreview'
 import GridPreview from '../components/GridPreview'
+import BookPreview from '../components/BookPreview'
 import { Transition } from 'react-navigation-fluid-transitions'
 
 const { width, height } = Dimensions.get('window')
@@ -40,6 +41,7 @@ const screens = [
   {
     title: "Book",
     screen: "Book",
+    Preview: BookPreview,
   },
 
 ]

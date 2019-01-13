@@ -58,6 +58,8 @@ class Book extends React.Component {
     super(props)
     const width = screenWidth * .4
     const height = width * 2
+    this._mounted = new Value(1)
+
     this.perspective = new Value(850)
     this.rawTrans = new Value(0)
     
@@ -111,7 +113,12 @@ class Book extends React.Component {
     const runCenterClock = [
       cond(clockRunning(this.centerClock), [
         spring(this.centerClock, this.centerSprState, this.centerSprConfig),
-        cond(this.centerSprState.finished, [
+        cond(
+          or(
+            this.centerSprState.finished,
+            not(this._mounted)
+            
+            ), [
           stopClock(this.centerClock),
           set(this.centerSprState.velocity, 0),
           set(this.centerSprState.time, 0),
@@ -129,7 +136,10 @@ class Book extends React.Component {
     const runClock = [
       cond(clockRunning(this.clock), [
         spring(this.clock, this.sprState, this.sprConfig),
-        cond(this.sprState.finished, [
+        cond(or(
+          this.sprState.finished,
+          not(this._mounted)
+          ), [
           stopClock(this.clock),
           set(this.sprState.velocity, 0),
           set(this.sprState.finished, 0),
@@ -185,6 +195,16 @@ class Book extends React.Component {
     })
   }
 
+  componentDidMount() {
+    this.willBlurSub = this.props.navigation.addListener('willBlur', () => {
+      this._mounted.setValue(0)
+    })
+  }
+
+  componentWillUnmount() {
+    this.willBlurSub && this.willBlurSub.remove()
+  }
+
   renderCard = ({ color, width, height, rotateY, translateX, translateY, zIndex }, index) => {
     return (
       <Animated.View
@@ -219,8 +239,6 @@ class Book extends React.Component {
     )
   }
 
-  test = new Value(0)
-
   render() {
     return (
       <View style={{
@@ -230,7 +248,6 @@ class Book extends React.Component {
         <PanGestureHandler
           onGestureEvent={event([{
             nativeEvent: ({ translationX, state }) => block([
-              set(this.test, translationX),
               cond(eq(this.gestureState, State.ACTIVE), [
                 cond(
                   or(
@@ -256,13 +273,15 @@ class Book extends React.Component {
                     set(this.rawTrans, translationX),
                   ]
                 ),
-                cond(clockRunning(this.clock), [
+                cond(
+                  clockRunning(this.clock), [
                   stopClock(this.clock),
                   set(this.sprState.finished, 0),
                   set(this.sprState.time, 0),
                   set(this.sprState.velocity, 0),
                 ]),
-                cond(clockRunning(this.centerClock), [
+                cond(
+                  clockRunning(this.centerClock), [
                   stopClock(this.centerClock),
                   set(this.centerSprState.finished, 0),
                   set(this.centerSprState.time, 0),

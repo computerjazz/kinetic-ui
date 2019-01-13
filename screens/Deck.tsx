@@ -237,7 +237,7 @@ class Deck extends Component {
          onHandlerStateChange={event([{
            nativeEvent: ({ state }) => block([
 
-             cond(and(greaterThan(abs(this.cumulativeTrans), 50), eq(state, State.BEGAN), neq(gestureState, State.BEGAN)), [
+             cond(and(greaterThan(abs(this.cumulativeTrans), 500), eq(state, State.BEGAN), neq(gestureState, State.BEGAN)), [
                debug('began', gestureState),
              ]),
              cond(and(eq(state, State.END), neq(gestureState, State.END)), [
@@ -308,7 +308,7 @@ class Deck extends Component {
                 and(
                   eq(state, State.ACTIVE),
                   neq(this.gestureState, State.ACTIVE),
-                  lessThan(abs(this.cumulativeTrans), 10),
+                  lessThan(abs(this.cumulativeTrans), 50),
                 ), [
                   set(this.left, cond(lessThan(x, width / 2), 1, 0)),
                   debug('left', this.left),
@@ -356,7 +356,7 @@ class Deck extends Component {
             {this.cards.map(this.renderCard)}
           </Animated.View>
         </PanGestureHandler>
-        <BackButton color="#ddd" onPress={() => this.props.navigation.goBack(null)} />
+        <BackButton onPress={() => this.props.navigation.goBack(null)} />
       </View>
 
     )

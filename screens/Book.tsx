@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Dimensions, View, StyleSheet } from 'react-native'
+import { Dimensions, View, StyleSheet, Text } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated'
 import { PanGestureHandler, State } from 'react-native-gesture-handler'
 
@@ -45,6 +45,7 @@ const {
 } = Animated;
 
 const numCards = 7
+const rampDist = 100
 console.log("Active", State.ACTIVE)
 console.log('Began', State.BEGAN)
 console.log('Canceled', State.CANCELLED)
@@ -58,10 +59,18 @@ class Book extends React.Component {
     const width = screenWidth * .4
     const height = width * 2
     this.perspective = new Value(850)
-    this.transX = new Value(0)
+    this.rawTrans = new Value(0)
+    
     this.prevTrans = new Value(width)
     this.gestureState = new Value(State.UNDETERMINED)
-    this.touchPct = new Value(1)
+    this.absPan = new Value(0)
+    this.panPct = Animated.interpolate(this.absPan, {
+      inputRange: [0, rampDist],
+      outputRange: [0, 1],
+      extrapolate: Animated.Extrapolate.CLAMP,
+    })
+
+    this.transX = multiply(this.rawTrans, this.panPct)
     
     this.clock = new Clock()
     this.sprState = {
@@ -81,48 +90,74 @@ class Book extends React.Component {
       restDisplacementThreshold: 0.001,
     }
 
+    this.centerClock = new Clock()
+    this.centerSprState = {
+      position: this.prevTrans,
+      velocity: new Value(0),
+      finished: new Value(0),
+      time: new Value(0),
+    }
+
+    this.centerSprConfig = {
+      damping: 8,
+      mass: 1,
+      stiffness: 50.296,
+      overshootClamping: false,
+      toValue: new Value(1),
+      restSpeedThreshold: 0.001,
+      restDisplacementThreshold: 0.001,
+    }
+
+    const runCenterClock = [
+      cond(clockRunning(this.centerClock), [
+        spring(this.centerClock, this.centerSprState, this.centerSprConfig),
+        cond(this.centerSprState.finished, [
+          stopClock(this.centerClock),
+          set(this.centerSprState.velocity, 0),
+          set(this.centerSprState.time, 0),
+          set(this.centerSprState.finished, 0),
+        ])
+      ]),
+      this.centerSprState.position,
+    ]
+
+    this.cumulativeTrans = add(this.transX, runCenterClock)
+    const panRange = width * 2
+    this.cardPanWidth = panRange / numCards
+    this.currentIndex = divide( this.cumulativeTrans, this.cardPanWidth)
+
     const runClock = [
       cond(clockRunning(this.clock), [
         spring(this.clock, this.sprState, this.sprConfig),
         cond(this.sprState.finished, [
           stopClock(this.clock),
-          // set(this.sprState.position, 0),
           set(this.sprState.velocity, 0),
           set(this.sprState.finished, 0),
           set(this.sprState.time, 0),
         ])
       ]),
-      this.sprState.position
+      this.sprState.position,
     ]
-
-
-
-    this.cumulativeTrans = add(this.transX, this.prevTrans)
-
-    const transToIndex = Animated.interpolate(this.cumulativeTrans, {
-      inputRange: [0, width * 2],
-      outputRange: [0, numCards]
-    })
 
     this.panIndex = new Value(0)
     this.cards = [...Array(numCards)].fill(0).map((d, index, arr) => {
       const colorMultiplier = 255 / (arr.length)
       // const color = `rgba(${index * colorMultiplier}, ${Math.abs(128 - index * colorMultiplier)}, ${255 - (index * colorMultiplier)}, 0.9)`
 
-      const rotateY = Animated.interpolate(transToIndex, {
+      const rotateY = Animated.interpolate(this.currentIndex, {
         inputRange: [index - 1.25, index, index + 1.25],
         outputRange: [0, Math.PI / 2, Math.PI],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
 
-      const zIndex = Animated.interpolate(transToIndex, {
+      const zIndex = Animated.interpolate(this.currentIndex, {
         inputRange: [index - 1, index, index + 1],
         outputRange: [-999 - index, 999, -999 + index],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
 
       const colorIndex = cond(
-          greaterThan(index, transToIndex), 
+          greaterThan(index, this.currentIndex), 
             index,
             index + 1,
            )
@@ -133,7 +168,7 @@ class Book extends React.Component {
       const b = round(sub(255, c))
       const cardColor = color(r, g, b)
 
-      const toVal = cond(lessThan(transToIndex, index), 0, Math.PI)
+      const toVal = cond(lessThan(this.currentIndex, index), 0, Math.PI)
 
       const springRotateY = add(
         multiply(runClock, toVal),
@@ -151,8 +186,6 @@ class Book extends React.Component {
   }
 
   renderCard = ({ color, width, height, rotateY, translateX, translateY, zIndex }, index) => {
-
-
     return (
       <Animated.View
         key={`book-card-${index}`}
@@ -178,11 +211,15 @@ class Book extends React.Component {
             backgroundColor: color,
             width: width,
             height,
-          }} />
+          }}>
+          <Text style={{ color: 'seashell', fontSize: 24, fontWeight: 'bold'}}>{}</Text>
+          </Animated.View>
         </Animated.View>
       </Animated.View>
     )
   }
+
+  test = new Value(0)
 
   render() {
     return (
@@ -193,17 +230,50 @@ class Book extends React.Component {
         <PanGestureHandler
           onGestureEvent={event([{
             nativeEvent: ({ translationX, state }) => block([
+              set(this.test, translationX),
               cond(eq(this.gestureState, State.ACTIVE), [
-                set(this.transX, translationX),
+                cond(
+                  or(
+                    and(
+                      greaterThan(this.currentIndex, -1),
+                      lessThan(this.currentIndex, numCards),
+                    ),
+                    and(
+                      not(greaterThan(this.currentIndex, -1)),
+                      greaterThan(translationX, this.rawTrans),
+                    ),
+                    and(
+                      not(lessThan(this.currentIndex, numCards)),
+                      lessThan(translationX, this.rawTrans),
+                    )
+                  ), [
+                    set(this.absPan,
+                      add(
+                        this.absPan,
+                        abs(sub(this.rawTrans, translationX)),
+                      )
+                    ),
+                    set(this.rawTrans, translationX),
+                  ]
+                ),
                 cond(clockRunning(this.clock), [
                   stopClock(this.clock),
                   set(this.sprState.finished, 0),
                   set(this.sprState.time, 0),
                   set(this.sprState.velocity, 0),
                 ]),
+                cond(clockRunning(this.centerClock), [
+                  stopClock(this.centerClock),
+                  set(this.centerSprState.finished, 0),
+                  set(this.centerSprState.time, 0),
+                  set(this.centerSprState.velocity, 0),
+                ]),
                 cond(
                   greaterThan(this.sprState.position, 0),
-                  set(this.sprState.position, max(0, sub(this.sprState.position, .05))),
+                  set(
+                    this.sprState.position, 
+                    max(0, multiply(this.sprState.position, .5)),
+                    ),
                 ),
               ])
             ])
@@ -211,9 +281,15 @@ class Book extends React.Component {
           onHandlerStateChange={event([{
             nativeEvent: ({ state }) => block([
               cond(and(eq(this.gestureState, State.ACTIVE), neq(state, State.ACTIVE)), [
+                set(this.centerSprConfig.toValue, add(
+                  multiply(floor(this.currentIndex), this.cardPanWidth),
+                  this.cardPanWidth / 2,
+                  ),
+                ),
                 set(this.prevTrans, add(this.prevTrans, this.transX)),
-                set(this.transX, 0),
-                debug('starting', this.transX),
+                set(this.rawTrans, 0),
+                set(this.absPan, 0),
+                startClock(this.centerClock),
                 startClock(this.clock)
               ]),
               set(this.gestureState, state),

@@ -251,7 +251,7 @@ class Grid extends React.Component {
         {this.cards.map(this.renderCard)}
         </Animated.View>
         </PanGestureHandler>
-        <BackButton color="#ddd" onPress={() => this.props.navigation.goBack(null)} />
+        <BackButton onPress={() => this.props.navigation.goBack(null)} />
       </View>
     )
   }

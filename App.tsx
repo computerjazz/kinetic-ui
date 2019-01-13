@@ -30,6 +30,9 @@ const Stack = createStackNavigator({
 }, {
   initialRouteName: 'Menu',
   headerMode: 'none',
+  defaultNavigationOptions: {
+    gesturesEnabled: false,
+  },
 })
 
 const Navigator = createAppContainer(Stack)

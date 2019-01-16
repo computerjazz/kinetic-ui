@@ -43,6 +43,10 @@ const screens = [
     screen: "Book",
     Preview: BookPreview,
   },
+  {
+    title: "Dot",
+    screen: "Dot",
+  }
 
 ]
 
@@ -71,7 +75,7 @@ class Menu extends Component {
       this.props.navigation.navigate(screen)
     }}>
     {!!Preview ? 
-      <Preview focused={this.focused} clock={this.clock} width={width / 2} height={width / 2} /> 
+      <Preview title={title} focused={this.focused} clock={this.clock} width={width / 2} height={width / 2} /> 
       : (
       <View
         style={{

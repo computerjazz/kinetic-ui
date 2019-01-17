@@ -354,6 +354,27 @@ class Dot extends Component {
       <Animated.View style={[
         styles.container,
       ]}>
+
+        <Animated.View
+          style={{
+            position: 'absolute',
+            opacity: 0.85,
+            width: this.radius,
+            height: this.radius,
+            borderRadius: this.radius,
+            borderColor: this.intersects() ? this.state.color : 'transparent',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 50,
+            transform: [{
+              translateX,
+              translateY,
+              scaleX: 2,
+              scaleY: 2,
+            }]
+          }}
+        />
+
       <Animated.View
         style={{
           position: 'absolute',
@@ -361,7 +382,6 @@ class Dot extends Component {
           width: this.radius,
           height: this.radius,
           borderRadius: this.radius,
-          backgroundColor: this.intersects() ? this.state.color : 'seashell', 
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 5,

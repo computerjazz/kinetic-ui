@@ -306,11 +306,15 @@ class Dot extends Component {
   intersects = () => {
     const { dragX, dragY } = this.state
     const dotRadius = dotSize * (1 + additionalScale)
+    const dotCenter = {
+      x: dragX + dotRadius / 2,
+      y: dragY + dotRadius / 2,
+    }
     const xl = width / 2 - this.radius / 2
     const xr = xl + this.radius
     const yt = height / 2 - this.radius / 2
     const yb = yt + this.radius
-    const intersects = (dragX > xl) && (dragX < xr) && (dragY > yt) && (dragY < yb)
+    const intersects = (dotCenter.x > xl) && (dotCenter.x < xr) && (dotCenter.y > yt) && (dotCenter.y < yb)
     this.scaleVal.setValue(intersects ? 0.01 : 0.05)
     this.scaleConfig.duration.setValue(intersects ? 500 : 1000)
     return intersects
@@ -331,7 +335,7 @@ class Dot extends Component {
           width: this.radius,
           height: this.radius,
           borderRadius: this.radius,
-          backgroundColor: this.intersects() ? this.state.color : 'transparent', 
+          backgroundColor: this.intersects() ? this.state.color : 'seashell', 
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 5,

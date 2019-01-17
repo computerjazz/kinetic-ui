@@ -10,6 +10,15 @@ const { width, height } = Dimensions.get("window")
 
 const dotSize = 80
 const additionalScale = 0.5
+const scale = {
+  active: 0.01,
+  inactive: 0.05,
+}
+
+const duration = {
+  active: 500,
+  inactive: 1000,
+}
 
 const {
   onChange,
@@ -167,8 +176,6 @@ class Dot extends Component {
         dotScaleState.position
       ]
 
-      const invertedScale = add(1, multiply(runClock, -1))
-
       const x = {
         start: startX,
         prev: prevX,
@@ -203,6 +210,10 @@ class Dot extends Component {
     }
   }
 
+  onDragBegin = ([ dragX, dragY ]) => {
+    this.setState({ active: true })
+  }
+
   onDrag = ([dragX, dragY]) => {
     this.setState({ dragX, dragY })
   }
@@ -213,8 +224,9 @@ class Dot extends Component {
     }  
     this.setActiveColor('transparent')
     this.scaleVal.setValue(0.05)
+    console.log('setting val onEnd!')
     this.scaleConfig.duration.setValue(1000)
-    this.setState({ dragX: null, dragY: null })
+    this.setState({ active: false, dragX: null, dragY: null })
   }
 
   setActiveColor = (color) => {
@@ -254,7 +266,10 @@ class Dot extends Component {
               ), [
                 set(zIndex, 999),
                 set(dotScaleConfig.toValue, 1),
-                call([gestureState],() => this.setActiveColor(dotColor)),
+                call([x.translate, y.translate],(r) => {
+                  this.onDragBegin(r),
+                  this.setActiveColor(dotColor)
+                }),
                 startClock(clock),
               ]
             ),
@@ -304,19 +319,30 @@ class Dot extends Component {
 
 
   intersects = () => {
-    const { dragX, dragY } = this.state
-    const dotRadius = dotSize * (1 + additionalScale)
-    const dotCenter = {
-      x: dragX + dotRadius / 2,
-      y: dragY + dotRadius / 2,
-    }
-    const xl = width / 2 - this.radius / 2
-    const xr = xl + this.radius
-    const yt = height / 2 - this.radius / 2
-    const yb = yt + this.radius
-    const intersects = (dotCenter.x > xl) && (dotCenter.x < xr) && (dotCenter.y > yt) && (dotCenter.y < yb)
-    this.scaleVal.setValue(intersects ? 0.01 : 0.05)
-    this.scaleConfig.duration.setValue(intersects ? 500 : 1000)
+    const { dragX, dragY, active } = this.state
+    let intersects = false
+
+    if (active) {
+      const dotRadius = dotSize * (1 + additionalScale)
+      const dotCenter = {
+        x: dragX + dotRadius / 2,
+        y: dragY + dotRadius / 2,
+      }
+      const xl = width / 2 - this.radius / 2
+      const xr = xl + this.radius
+      const yt = height / 2 - this.radius / 2
+      const yb = yt + this.radius
+      intersects = (dotCenter.x > xl) && (dotCenter.x < xr) && (dotCenter.y > yt) && (dotCenter.y < yb)
+
+      if (intersects) {
+        if (neq(this.scaleVal, scale.active)) this.scaleVal.setValue(scale.active)
+        if (neq(this.scaleConfig.duration), duration.active) this.scaleConfig.duration.setValue(duration.active)
+      } else {
+        if (neq(this.scaleVal, scale.active)) this.scaleVal.setValue(scale.active)
+        if (neq(this.scaleConfig.duration), duration.inactive) this.scaleConfig.duration.setValue(duration.inactive)
+      }
+    } 
+
     return intersects
   }
 

@@ -9,6 +9,7 @@ import BackButton from '../components/BackButton'
 const { width, height } = Dimensions.get("window")
 
 const dotSize = 80
+const additionalScale = 0.5
 
 const {
   onChange,
@@ -36,16 +37,79 @@ const {
   Clock,
   event,
   sin,
+  cos,
   round,
   abs,
   color,
   call,
 } = Animated;
 
+
 class Dot extends Component {
 
   constructor(props) {
     super(props);
+
+    const rotClock = new Clock()
+
+    const rotState = {
+      position: new Value(0),
+      time: new Value(0),
+      frameTime: new Value(0),
+      finished: new Value(0),
+    }
+    const rotConfig = {
+      easing: Easing.linear,
+      toValue: Math.PI * 2,
+      duration: 20000,
+    }
+
+
+    this.centerRotate = block([
+      cond(not(clockRunning(rotClock)), startClock(rotClock)),
+      timing(rotClock, rotState, rotConfig),
+      cond(rotState.finished, [
+        stopClock(rotClock),
+        set(rotState.position, 0),
+        set(rotState.time, 0),
+        set(rotState.frameTime, 0),
+        set(rotState.finished, 0),
+        startClock(rotClock),
+      ]),
+      rotState.position,
+    ])
+
+    const scaleClock = new Clock()
+
+    const scaleState = {
+      position: new Value(0),
+      time: new Value(0),
+      frameTime: new Value(0),
+      finished: new Value(0),
+    }
+    this.scaleConfig = {
+      easing: Easing.linear,
+      toValue: Math.PI * 2,
+      duration: new Value(1000),
+    }
+
+    this.scaleVal = new Value(0.05)
+    const runScale = block([
+      cond(not(clockRunning(scaleClock)), startClock(scaleClock)),
+      timing(scaleClock, scaleState, this.scaleConfig),
+      cond(scaleState.finished, [
+        stopClock(scaleClock),
+        set(scaleState.position, 0),
+        set(scaleState.time, 0),
+        set(scaleState.frameTime, 0),
+        set(scaleState.finished, 0),
+        startClock(scaleClock),
+      ]),
+      scaleState.position,
+    ])
+
+    this.centerScale = add(1, multiply(this.scaleVal, sin(runScale)))
+
 
     const numDots = 7
     this.radius = width / 3
@@ -67,14 +131,14 @@ class Dot extends Component {
       const prevX = new Value(0);
       const prevY = new Value(0);
 
-      const scaleState = {
+      const dotScaleState = {
         finished: new Value(0),
         velocity: new Value(0),
         position: new Value(0),
         time: new Value(0),
       };
 
-      const scaleConfig = {
+      const dotScaleConfig = {
         damping: 22,
         mass: 1,
         stiffness: 550,
@@ -92,15 +156,15 @@ class Dot extends Component {
 
       const runClock = [
         cond(clockRunning(clock), [
-          spring(clock, scaleState, scaleConfig),
-          cond(scaleState.finished, [
-            set(scaleState.finished, 0),
-            set(scaleState.velocity, 0),
-            // set(scaleState.position, 0),
-            set(scaleState.time, 0),
+          spring(clock, dotScaleState, dotScaleConfig),
+          cond(dotScaleState.finished, [
+            set(dotScaleState.finished, 0),
+            set(dotScaleState.velocity, 0),
+            // set(dotScaleState.position, 0),
+            set(dotScaleState.time, 0),
           ])
         ]),
-        scaleState.position
+        dotScaleState.position
       ]
 
       const invertedScale = add(1, multiply(runClock, -1))
@@ -124,9 +188,9 @@ class Dot extends Component {
         zIndex: new Value(0),
         x,
         y,
-        scale: add(multiply(runClock, 0.5), 1),
-        scaleState,
-        scaleConfig,
+        scale: add(multiply(runClock, additionalScale), 1),
+        dotScaleState,
+        dotScaleConfig,
         clock,
         dotColor,
       }
@@ -135,7 +199,20 @@ class Dot extends Component {
     this.state = {
       dragX: null,
       dragY: null,
+      color: '#ddd'
     }
+  }
+
+  setDragState = ([dragX, dragY]) => {
+    this.setState({ dragX, dragY })
+  }
+
+  clearDragState = () => {
+    this.setState({ dragX: null, dragY: null })
+  }
+
+  setActiveColor = (color) => {
+    this.setState({ color })
   }
 
   renderDot = ({ 
@@ -145,7 +222,7 @@ class Dot extends Component {
     y,
     clock, 
     scale, 
-    scaleConfig,
+    dotScaleConfig,
     zIndex,
   }, i) => {
 
@@ -157,7 +234,7 @@ class Dot extends Component {
             cond(eq(gestureState, State.ACTIVE), [
               set(x.drag, translationX),
               set(y.drag, translationY),
-              call([x.translate, y.translate], throttle(([dragX, dragY]) => this.setState({ dragX, dragY }), 100))
+              call([x.translate, y.translate], throttle(this.setDragState, 100, { trailing: false }))
             ])
           ]),
         }])}
@@ -170,7 +247,8 @@ class Dot extends Component {
                 eq(state, State.ACTIVE),
               ), [
                 set(zIndex, 999),
-                set(scaleConfig.toValue, 1),
+                set(dotScaleConfig.toValue, 1),
+                call([gestureState],() => this.setActiveColor(dotColor)),
                 startClock(clock),
               ]
             ),
@@ -181,7 +259,8 @@ class Dot extends Component {
                 neq(state, State.ACTIVE),
               ), [
                 set(zIndex, 0),
-                set(scaleConfig.toValue, 0),
+                set(dotScaleConfig.toValue, 0),
+                call([x.translate, y.translate], this.clearDragState),
                 startClock(clock),
               ]),
             set(gestureState, state),
@@ -199,6 +278,7 @@ class Dot extends Component {
           <Animated.View
             style={{
               position: 'absolute',
+              opacity: 0.85,
               width: dotSize,
               height: dotSize,
               borderRadius: dotSize / 2,
@@ -216,28 +296,45 @@ class Dot extends Component {
     )
   }
 
-  render() {
+
+  intersects = () => {
     const { dragX, dragY } = this.state
+    const dotRadius = dotSize * (1 + additionalScale)
     const xl = width / 2 - this.radius / 2
     const xr = xl + this.radius
     const yt = height / 2 - this.radius / 2
     const yb = yt + this.radius
     const intersects = (dragX > xl) && (dragX < xr) && (dragY > yt) && (dragY < yb)
+    this.scaleVal.setValue(intersects ? 0.01 : 0.05)
+    this.scaleConfig.duration.setValue(intersects ? 500 : 1000)
+    return intersects
+  }
+
+  render() {
+    const translateX = width / 2 - this.radius / 2
+    const translateY = height / 2 - this.radius / 2
 
     return (
       <View style={styles.container}>
       <Animated.View
         style={{
           position: 'absolute',
+          opacity: 0.85,
           width: this.radius,
           height: this.radius,
           borderRadius: this.radius,
-          backgroundColor: intersects ? 'tomato' : '#ddd', 
+          backgroundColor: this.intersects() ? this.state.color : 'transparent', 
           alignItems: 'center',
           justifyContent: 'center',
+          borderWidth: 5,
+          borderStyle: 'dotted',
+          borderColor: '#ccc',
           transform: [{
-            translateX: xl,
-            translateY: yt,
+            translateX,
+            translateY,
+            rotate: this.centerRotate,
+            scaleX: this.centerScale,
+            scaleY: this.centerScale,
           }]
         }}
       >

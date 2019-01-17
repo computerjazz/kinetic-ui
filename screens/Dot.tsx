@@ -199,15 +199,21 @@ class Dot extends Component {
     this.state = {
       dragX: null,
       dragY: null,
-      color: '#ddd'
+      color: 'transparent',
     }
   }
 
-  setDragState = ([dragX, dragY]) => {
+  onDrag = ([dragX, dragY]) => {
     this.setState({ dragX, dragY })
   }
 
-  clearDragState = () => {
+  onDragEnd = () => {
+    if (this.intersects()) {
+      // Animate color expansion
+    }  
+    this.setActiveColor('transparent')
+    this.scaleVal.setValue(0.05)
+    this.scaleConfig.duration.setValue(1000)
     this.setState({ dragX: null, dragY: null })
   }
 
@@ -234,7 +240,7 @@ class Dot extends Component {
             cond(eq(gestureState, State.ACTIVE), [
               set(x.drag, translationX),
               set(y.drag, translationY),
-              call([x.translate, y.translate], throttle(this.setDragState, 100, { trailing: false }))
+              call([x.translate, y.translate], throttle(this.onDrag, 100, { trailing: false }))
             ])
           ]),
         }])}
@@ -260,7 +266,7 @@ class Dot extends Component {
               ), [
                 set(zIndex, 0),
                 set(dotScaleConfig.toValue, 0),
-                call([x.translate, y.translate], this.clearDragState),
+                call([x.translate, y.translate], this.onDragEnd),
                 startClock(clock),
               ]),
             set(gestureState, state),
@@ -315,7 +321,9 @@ class Dot extends Component {
     const translateY = height / 2 - this.radius / 2
 
     return (
-      <View style={styles.container}>
+      <Animated.View style={[
+        styles.container,
+      ]}>
       <Animated.View
         style={{
           position: 'absolute',
@@ -347,7 +355,7 @@ class Dot extends Component {
       </Animated.View>
         {this.dots.map(this.renderDot)}
         <BackButton onPress={() => this.props.navigation.goBack(null)} />
-      </View>
+      </Animated.View>
     )
   }
 }

@@ -103,6 +103,7 @@ class Dot extends Component {
     }
 
     this.scaleVal = new Value(0.05)
+
     const runScale = block([
       cond(not(clockRunning(scaleClock)), startClock(scaleClock)),
       timing(scaleClock, scaleState, this.scaleConfig),
@@ -157,6 +158,8 @@ class Dot extends Component {
         toValue: new Value(1),
       };
 
+      const intersects = new Value(0)
+
       const c = multiply(index, colorMultiplier)
       const r = round(c)
       const g = round(abs(sub(128, c)))
@@ -167,6 +170,7 @@ class Dot extends Component {
         cond(clockRunning(clock), [
           spring(clock, dotScaleState, dotScaleConfig),
           cond(dotScaleState.finished, [
+            stopClock(clock),
             set(dotScaleState.finished, 0),
             set(dotScaleState.velocity, 0),
             // set(dotScaleState.position, 0),
@@ -190,12 +194,19 @@ class Dot extends Component {
         translate: add(startY, multiply(runClock, add(dragY, prevY)))
       }
 
+      const scale = cond(intersects, [
+        0,
+      ], [
+          add(multiply(runClock, additionalScale), 1)
+      ])
+
       return {
         gestureState: new Value(State.UNDETERMINED),
         zIndex: new Value(0),
+        intersects,
         x,
         y,
-        scale: add(multiply(runClock, additionalScale), 1),
+        scale,
         dotScaleState,
         dotScaleConfig,
         clock,
@@ -210,13 +221,14 @@ class Dot extends Component {
 
   onDragBegin = ([ dragX, dragY, color]) => {}
 
-  onDrag = ([dragX, dragY, color]) => {
+  onDrag = (x, y, color, index) => {
     this.setState({ color })
    this.checkIntersection({
-     x: dragX,
-     y: dragY,
+     x,
+     y,
      onIntersectIn: () => this.onIntersectIn(color),
      onIntersectOut: () => this.onIntersectOut(),
+     index,
    })
   }
 
@@ -256,6 +268,7 @@ class Dot extends Component {
     scale, 
     dotScaleConfig,
     zIndex,
+    intersects,
   }, i) => {
 
     return (
@@ -266,7 +279,7 @@ class Dot extends Component {
             cond(eq(gestureState, State.ACTIVE), [
               set(x.drag, translationX),
               set(y.drag, translationY),
-              call([x.translate, y.translate, dotColor], throttle(([dragX, dragY, c]) => this.onDrag([dragX, dragY, dotColor]), 100, { trailing: false }))
+              call([x.translate, y.translate], throttle(([dragX, dragY]) => this.onDrag(dragX, dragY, dotColor, i), 100, { trailing: false }))
             ])
           ]),
         }])}
@@ -333,7 +346,8 @@ class Dot extends Component {
   }
 
   intersects = false
-  checkIntersection = async ({x, y, onIntersectIn, onIntersectOut }) => {
+
+  checkIntersection = async ({x, y, onIntersectIn, onIntersectOut, index }) => {
     let intersects = false
     const dotRadius = dotSize * (1 + additionalScale)
     const dotCenter = {
@@ -350,6 +364,7 @@ class Dot extends Component {
     else if (!intersects && this.intersects) onIntersectOut()
     
     this.intersects = intersects
+    this.dots[index].intersects.setValue(intersects ? 1 : 0)
     return intersects
   }
 
@@ -414,12 +429,6 @@ class Dot extends Component {
           }]
         }}
       >
-        <Text 
-          style={{ 
-            color: 'seashell', 
-            fontSize: 18, 
-            fontWeight: 'bold'
-            }}>{}</Text>
       </Animated.View>
         {this.dots.map(this.renderDot)}
         <BackButton onPress={() => this.props.navigation.goBack(null)} />

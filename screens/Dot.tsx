@@ -10,9 +10,9 @@ const { width, height } = Dimensions.get("window")
 
 const dotSize = 80
 const additionalScale = 0.5
-const scale = {
-  active: 0.01,
-  inactive: 0.05,
+const fxScales = {
+  in: 2,
+  out: 15,
 }
 
 const duration = {
@@ -204,33 +204,47 @@ class Dot extends Component {
     })
 
     this.state = {
-      dragX: null,
-      dragY: null,
       color: 'transparent',
     }
   }
 
-  onDragBegin = ([ dragX, dragY ]) => {
-    this.setState({ active: true })
-  }
+  onDragBegin = ([ dragX, dragY, color]) => {}
 
-  onDrag = ([dragX, dragY]) => {
-    this.setState({ dragX, dragY })
+  onDrag = ([dragX, dragY, color]) => {
+    this.setState({ color })
+   this.checkIntersection({
+     x: dragX,
+     y: dragY,
+     onIntersectIn: () => this.onIntersectIn(color),
+     onIntersectOut: () => this.onIntersectOut(),
+   })
   }
 
   onDragEnd = () => {
-    if (this.intersects()) {
+    if (this.intersects) {
       // Animate color expansion
-    }  
-    this.setActiveColor('transparent')
-    this.scaleVal.setValue(0.05)
-    console.log('setting val onEnd!')
-    this.scaleConfig.duration.setValue(1000)
-    this.setState({ active: false, dragX: null, dragY: null })
+      this.animateFx(fxScales.out)
+    }  else {
+      this.onIntersectOut()
+    }
   }
 
-  setActiveColor = (color) => {
-    this.setState({ color })
+  onIntersectIn = (color) => {
+    this.setState({ color }, () => {
+      this.animateFx(fxScales.in)
+    })
+  }
+
+  onIntersectOut = () => {
+    this.animateFx(fxScales.out, () => this.setState({ color: 'transparent '}))
+  }
+
+  animateFx = (toValue, cb) => {
+    this.fxConfig.toValue = toValue
+    this.fxAnim = spring(this.scaleFx, this.fxConfig)
+    this.fxAnim.start(() => {
+      cb && cb()
+    })
   }
 
   renderDot = ({ 
@@ -252,7 +266,7 @@ class Dot extends Component {
             cond(eq(gestureState, State.ACTIVE), [
               set(x.drag, translationX),
               set(y.drag, translationY),
-              call([x.translate, y.translate], throttle(this.onDrag, 100, { trailing: false }))
+              call([x.translate, y.translate, dotColor], throttle(([dragX, dragY, c]) => this.onDrag([dragX, dragY, dotColor]), 100, { trailing: false }))
             ])
           ]),
         }])}
@@ -266,10 +280,7 @@ class Dot extends Component {
               ), [
                 set(zIndex, 999),
                 set(dotScaleConfig.toValue, 1),
-                call([x.translate, y.translate],(r) => {
-                  this.onDragBegin(r),
-                  this.setActiveColor(dotColor)
-                }),
+                call([x.translate, y.translate, dotColor], this.onDragBegin),
                 startClock(clock),
               ]
             ),
@@ -281,7 +292,7 @@ class Dot extends Component {
               ), [
                 set(zIndex, 0),
                 set(dotScaleConfig.toValue, 0),
-                call([x.translate, y.translate], this.onDragEnd),
+                call([x.translate, y.translate, dotColor], this.onDragEnd),
                 startClock(clock),
               ]),
             set(gestureState, state),
@@ -293,7 +304,13 @@ class Dot extends Component {
           style={{
             flex: 1,
             position: 'absolute',
+            width: dotSize,
+            height: dotSize,
             zIndex,
+            transform: [{
+              translateX: x.translate,
+              translateY: y.translate,
+            }]
           }}
         >
           <Animated.View
@@ -305,8 +322,6 @@ class Dot extends Component {
               borderRadius: dotSize / 2,
               backgroundColor: dotColor,
               transform: [{
-                translateX: x.translate,
-                translateY: y.translate,
                 scaleX: scale,
                 scaleY: scale,
               }]
@@ -317,34 +332,38 @@ class Dot extends Component {
     )
   }
 
-
-  intersects = () => {
-    const { dragX, dragY, active } = this.state
+  intersects = false
+  checkIntersection = async ({x, y, onIntersectIn, onIntersectOut }) => {
     let intersects = false
+    const dotRadius = dotSize * (1 + additionalScale)
+    const dotCenter = {
+      x: x + dotRadius / 2,
+      y: y + dotRadius / 2,
+    }
+    const xl = width / 2 - this.radius / 2
+    const xr = xl + this.radius
+    const yt = height / 2 - this.radius / 2
+    const yb = yt + this.radius
+    intersects = (dotCenter.x > xl) && (dotCenter.x < xr) && (dotCenter.y > yt) && (dotCenter.y < yb)
 
-    if (active) {
-      const dotRadius = dotSize * (1 + additionalScale)
-      const dotCenter = {
-        x: dragX + dotRadius / 2,
-        y: dragY + dotRadius / 2,
-      }
-      const xl = width / 2 - this.radius / 2
-      const xr = xl + this.radius
-      const yt = height / 2 - this.radius / 2
-      const yb = yt + this.radius
-      intersects = (dotCenter.x > xl) && (dotCenter.x < xr) && (dotCenter.y > yt) && (dotCenter.y < yb)
-
-      if (intersects) {
-        if (neq(this.scaleVal, scale.active)) this.scaleVal.setValue(scale.active)
-        if (neq(this.scaleConfig.duration), duration.active) this.scaleConfig.duration.setValue(duration.active)
-      } else {
-        if (neq(this.scaleVal, scale.active)) this.scaleVal.setValue(scale.active)
-        if (neq(this.scaleConfig.duration), duration.inactive) this.scaleConfig.duration.setValue(duration.inactive)
-      }
-    } 
-
+    if (intersects && !this.intersects) onIntersectIn()
+    else if (!intersects && this.intersects) onIntersectOut()
+    
+    this.intersects = intersects
     return intersects
   }
+
+  scaleFx = new Value(fxScales.out)
+  fxConfig = {
+    damping: 22,
+    mass: 1,
+    stiffness: 55,
+    overshootClamping: false,
+    restSpeedThreshold: 0.001,
+    restDisplacementThreshold: 0.001,
+    toValue: fxScales.in,
+  }
+  fxAnim = spring(this.scaleFx, this.fxConfig)
 
   render() {
     const translateX = width / 2 - this.radius / 2
@@ -354,7 +373,6 @@ class Dot extends Component {
       <Animated.View style={[
         styles.container,
       ]}>
-
         <Animated.View
           style={{
             position: 'absolute',
@@ -362,15 +380,15 @@ class Dot extends Component {
             width: this.radius,
             height: this.radius,
             borderRadius: this.radius,
-            borderColor: this.intersects() ? this.state.color : 'transparent',
+            borderColor: this.state.color,
             alignItems: 'center',
             justifyContent: 'center',
-            borderWidth: 50,
+            borderWidth: 20,
             transform: [{
               translateX,
               translateY,
-              scaleX: 2,
-              scaleY: 2,
+              scaleX: this.scaleFx,
+              scaleY: this.scaleFx,
             }]
           }}
         />
@@ -378,7 +396,6 @@ class Dot extends Component {
       <Animated.View
         style={{
           position: 'absolute',
-          opacity: 0.85,
           width: this.radius,
           height: this.radius,
           borderRadius: this.radius,
@@ -386,6 +403,7 @@ class Dot extends Component {
           justifyContent: 'center',
           borderWidth: 5,
           borderStyle: 'dotted',
+          backgroundColor: 'seashell',
           borderColor: '#ccc',
           transform: [{
             translateX,
@@ -401,7 +419,7 @@ class Dot extends Component {
             color: 'seashell', 
             fontSize: 18, 
             fontWeight: 'bold'
-            }}>{`x: ${Math.round(this.state.dragX)} y: ${Math.round(this.state.dragY)}`}</Text>
+            }}>{}</Text>
       </Animated.View>
         {this.dots.map(this.renderDot)}
         <BackButton onPress={() => this.props.navigation.goBack(null)} />

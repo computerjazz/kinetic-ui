@@ -194,8 +194,33 @@ class Dot extends Component {
         translate: add(startY, multiply(runClock, add(dragY, prevY)))
       }
 
+      const endClock = new Clock
+      const endState = {
+        position: new Value(0),
+        finished: new Value(0),
+        time: new Value(0),
+        frameTime: new Value(0),
+      }
+      const endConfig = {
+        easing: Easing.linear,
+        duration: 1000,
+        toValue: 1,
+      }
+
+      const runEndClock = cond(clockRunning(endClock), [
+        timing(endClock, endState, endConfig),
+        cond(endState.finished, [
+          set(endState.finished, 0),
+          set(endState.time, 0),
+          set(endState.frameTime, 0),
+          set(endState.position, 0),
+          set(intersects, 0),
+        ]),
+        endState.position,
+      ], startClock(endClock))
+
       const scale = cond(intersects, [
-        0,
+        runEndClock,
       ], [
           add(multiply(runClock, additionalScale), 1)
       ])
@@ -215,39 +240,45 @@ class Dot extends Component {
     })
 
     this.state = {
-      color: 'transparent',
+      color,
     }
   }
 
-  onDragBegin = ([ dragX, dragY, color]) => {}
+  onDragBegin = (index) => {
+    const activeDot = this.dots[index]
+    this.placeholderDot.x = activeDot.x.translate,
+    this.placeholderDot.y = activeDot.y.translate,
+    this.placeholderDot.color = activeDot.dotColor,
+    this.setState({ activeIndex: index, color: activeDot.dotColor })
 
-  onDrag = (x, y, color, index) => {
-    this.setState({ color })
+  }
+
+  onDrag = (x, y, index) => {
    this.checkIntersection({
      x,
      y,
-     onIntersectIn: () => this.onIntersectIn(color),
-     onIntersectOut: () => this.onIntersectOut(),
      index,
    })
   }
 
-  onDragEnd = () => {
+  onDragEnd = (index) => {
     if (this.intersects) {
       // Animate color expansion
       this.animateFx(fxScales.out)
+      this.dots[index].intersects.setValue(1)
     }  else {
       this.onIntersectOut()
     }
   }
 
-  onIntersectIn = (color) => {
-    this.setState({ color }, () => {
+  onIntersectIn = (index) => {
+    console.log('intersect')
+    this.setState({ color: this.dots[index].dotColor }, () => {
       this.animateFx(fxScales.in)
     })
   }
 
-  onIntersectOut = () => {
+  onIntersectOut = (index) => {
     this.animateFx(fxScales.out, () => this.setState({ color: 'transparent '}))
   }
 
@@ -259,6 +290,13 @@ class Dot extends Component {
     })
   }
 
+  placeholderDot = {
+    x: 0,
+    y: 0,
+    color: 'transparent',
+    opacity: 1,
+  }
+
   renderDot = ({ 
     dotColor,
     gestureState, 
@@ -268,7 +306,6 @@ class Dot extends Component {
     scale, 
     dotScaleConfig,
     zIndex,
-    intersects,
   }, i) => {
 
     return (
@@ -279,7 +316,7 @@ class Dot extends Component {
             cond(eq(gestureState, State.ACTIVE), [
               set(x.drag, translationX),
               set(y.drag, translationY),
-              call([x.translate, y.translate], throttle(([dragX, dragY]) => this.onDrag(dragX, dragY, dotColor, i), 100, { trailing: false }))
+              call([x.translate, y.translate], throttle(([dragX, dragY]) => this.onDrag(dragX, dragY, i), 100, { trailing: false }))
             ])
           ]),
         }])}
@@ -293,7 +330,7 @@ class Dot extends Component {
               ), [
                 set(zIndex, 999),
                 set(dotScaleConfig.toValue, 1),
-                call([x.translate, y.translate, dotColor], this.onDragBegin),
+                call([x.translate, y.translate, dotColor], () => this.onDragBegin(i)),
                 startClock(clock),
               ]
             ),
@@ -305,7 +342,7 @@ class Dot extends Component {
               ), [
                 set(zIndex, 0),
                 set(dotScaleConfig.toValue, 0),
-                call([x.translate, y.translate, dotColor], this.onDragEnd),
+                call([x.translate, y.translate, dotColor], () => this.onDragEnd(i)),
                 startClock(clock),
               ]),
             set(gestureState, state),
@@ -340,6 +377,7 @@ class Dot extends Component {
               }]
             }}
           />
+ 
         </Animated.View>
       </PanGestureHandler>
     )
@@ -347,7 +385,7 @@ class Dot extends Component {
 
   intersects = false
 
-  checkIntersection = async ({x, y, onIntersectIn, onIntersectOut, index }) => {
+  checkIntersection = async ({x, y, index }) => {
     let intersects = false
     const dotRadius = dotSize * (1 + additionalScale)
     const dotCenter = {
@@ -360,11 +398,10 @@ class Dot extends Component {
     const yb = yt + this.radius
     intersects = (dotCenter.x > xl) && (dotCenter.x < xr) && (dotCenter.y > yt) && (dotCenter.y < yb)
 
-    if (intersects && !this.intersects) onIntersectIn()
-    else if (!intersects && this.intersects) onIntersectOut()
+    if (intersects && !this.intersects) this.onIntersectIn(index)
+    else if (!intersects && this.intersects) this.onIntersectOut(index)
     
     this.intersects = intersects
-    this.dots[index].intersects.setValue(intersects ? 1 : 0)
     return intersects
   }
 
@@ -379,6 +416,26 @@ class Dot extends Component {
     toValue: fxScales.in,
   }
   fxAnim = spring(this.scaleFx, this.fxConfig)
+
+  renderPlaceholder = () => (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        opacity: 0.85,
+        width: dotSize,
+        height: dotSize,
+        borderRadius: dotSize / 2,
+        backgroundColor: 'tomato',
+        zIndex: 999,
+        transform: [{
+          translateX: this.placeholderDot.x,
+          translateY: this.placeholderDot.y,
+          scaleX: 1 + additionalScale,
+          scaleY: 1 + additionalScale,
+        }]
+      }}
+    />
+  )
 
   render() {
     const translateX = width / 2 - this.radius / 2

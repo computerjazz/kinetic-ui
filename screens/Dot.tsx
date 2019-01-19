@@ -126,6 +126,19 @@ class Dot extends Component {
     const dotCenterX = width / 2 - dotSize / 2
     const dotCenterY = height / 2 - dotSize / 2
 
+    const r = new Value(0)
+    const g = new Value(0)
+    const b = new Value(0)
+    this.placeholderDot = {
+        x: new Value(0),
+        y: new Value(0),
+        r,
+        g,
+        b,
+        color: color(r, g, b),
+        opacity: 1,
+    }
+
     this.dots = [...Array(numDots)].fill(0).map((d, index, arr) => {
       const colorMultiplier = 255 / (arr.length - 1)
 
@@ -236,6 +249,7 @@ class Dot extends Component {
         dotScaleConfig,
         clock,
         dotColor,
+        rgb: {r, g, b},
       }
     })
 
@@ -246,10 +260,7 @@ class Dot extends Component {
 
   onDragBegin = (index) => {
     const activeDot = this.dots[index]
-    this.placeholderDot.x = activeDot.x.translate,
-    this.placeholderDot.y = activeDot.y.translate,
-    this.placeholderDot.color = activeDot.dotColor,
-    this.setState({ activeIndex: index, color: activeDot.dotColor })
+    this.setState({ color: activeDot.dotColor })
 
   }
 
@@ -265,7 +276,13 @@ class Dot extends Component {
     if (this.intersects) {
       // Animate color expansion
       this.animateFx(fxScales.out)
+      const activeDot = this.dots[index]
       this.dots[index].intersects.setValue(1)
+      this.placeholderDot.x.setValue(activeDot.x.translate)
+      this.placeholderDot.y.setValue(activeDot.y.translate)
+      this.placeholderDot.r.setValue(activeDot.rgb.r)
+      this.placeholderDot.g.setValue(activeDot.rgb.g)
+      this.placeholderDot.b.setValue(activeDot.rgb.b)
     }  else {
       this.onIntersectOut()
     }
@@ -288,13 +305,6 @@ class Dot extends Component {
     this.fxAnim.start(() => {
       cb && cb()
     })
-  }
-
-  placeholderDot = {
-    x: 0,
-    y: 0,
-    color: 'transparent',
-    opacity: 1,
   }
 
   renderDot = ({ 
@@ -425,7 +435,7 @@ class Dot extends Component {
         width: dotSize,
         height: dotSize,
         borderRadius: dotSize / 2,
-        backgroundColor: 'tomato',
+        backgroundColor: this.placeholderDot.color,
         zIndex: 999,
         transform: [{
           translateX: this.placeholderDot.x,
@@ -464,6 +474,8 @@ class Dot extends Component {
             }]
           }}
         />
+
+        {this.renderPlaceholder()}
 
       <Animated.View
         style={{

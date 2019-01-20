@@ -405,14 +405,14 @@ class Dot extends Component {
                 eq(state, State.ACTIVE),
               ), [
                 debug('becoming active', scale.config.toValue),
-                set(ring.a, 1), // Hide ring spring back to center
+                set(ring.a, 0), // Hide ring spring back to center
+                set(placeholder.a, 0),
                 set(ring.r, rgb.r),
                 set(ring.g, rgb.g),
                 set(ring.b, rgb.b),
                 set(placeholder.r, rgb.r),
                 set(placeholder.g, rgb.g),
                 set(placeholder.b, rgb.b),
-                set(placeholder.a, 0),
                 set(zIndex, 999),
                 set(scale.config.toValue, 1),
                 set(placeholder.scale, 0.5),
@@ -436,18 +436,15 @@ class Dot extends Component {
                 neq(state, State.ACTIVE),
               ), [
                 debug('becoming inactive', scale.config.toValue),
-                set(placeholder.a, 1),
-                set(zIndex, 0),
-                set(scale.config.toValue, 0),
-                cond(intersects, 
+                cond(intersects, [
+                  set(placeholder.a, 1),
                   startClock(endClock),
-                  [
-                    set(placeholder.a, 0),
-                  ]
-                ),
+                ], set(placeholder.a, 0)),
+                set(scale.config.toValue, 0),
                 startClock(scale.clock),
                 set(ring.config.toValue, cond(intersects, ringScales.out, ringScales.disabled)),
                 startClock(ring.clock),
+                set(zIndex, 0),
               ]),
             set(gestureState, state),
           ])
@@ -533,17 +530,8 @@ class Dot extends Component {
     )
   }
 
-  render() {
-
-
+  renderDropZone = () => {
     return (
-      <Animated.View style={[
-        styles.container,
-      ]}>
-
-        {this.dots.map(this.renderRing)}
-        {this.dots.map(this.renderPlaceholder)}
-
       <Animated.View
         style={{
           position: 'absolute',
@@ -564,8 +552,16 @@ class Dot extends Component {
             scaleY: this.dropZoneScale,
           }]
         }}
-      >
-      </Animated.View>
+      />
+    )
+  }
+
+  render() {
+    return (
+      <Animated.View style={styles.container}>
+        {this.dots.map(this.renderRing)}
+        {this.dots.map(this.renderPlaceholder)}
+        {this.renderDropZone()}
         {this.dots.map(this.renderDot)}
         <BackButton onPress={() => this.props.navigation.goBack(null)} />
       </Animated.View>

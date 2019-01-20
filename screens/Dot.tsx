@@ -147,7 +147,7 @@ class Dot extends Component {
       const dotScaleState = {
         finished: new Value(0),
         velocity: new Value(0),
-        position: new Value(0),
+        position: new Value(0.001),
         time: new Value(0),
       };
 
@@ -210,8 +210,10 @@ class Dot extends Component {
       
 
       const endClock = new Clock
+      const endDisabled = 0.01
       const endState = {
-        position: new Value(0),
+        disabled: endDisabled,
+        position: new Value(endDisabled),
         finished: new Value(0),
         time: new Value(0),
         frameTime: new Value(0),
@@ -228,11 +230,9 @@ class Dot extends Component {
       const ringB = new Value(0)
       const ringA = new Value(0)
 
-
-
       const ringClock = new Clock()
       const ringState = {
-        position: new Value(0),
+        position: new Value(0.001),
         time: new Value(0),
         finished: new Value(0),
         velocity: new Value(0),
@@ -260,22 +260,30 @@ class Dot extends Component {
         ringState.position,
       ])
 
+      const ringColor = color(ringR, ringG, ringB, ringA)
+      const ringOpacity = cond(
+        and(
+          greaterThan(ringState.position, ringScales.disabled + .05),
+          lessThan(ringState.position, ringScales.out - .05),
+        ), 0.85, 0)
+
       const ring = {
         clock: ringClock,
         state: ringState,
         config: ringConfig,
-        scale: ringScale,
+        scale: sub(add(this.dropZoneScale, ringScale), 1),
         r: ringR,
         g: ringG,
         b: ringB,
         a: ringA,
-        color: color(ringR, ringG, ringB, ringA),
+        color: ringColor,
         rgb: {
           r: ringR,
           g: ringG,
           b: ringB,
           a: ringA,
         },
+        opacity: ringOpacity
       }
 
       // Placeholder
@@ -313,7 +321,7 @@ class Dot extends Component {
           set(placeholder.scale, multiply(add(1, additionalScale), add(1, multiply(-1, runEndClock)))),
           runEndClock, 
           ], [
-          cond(eq(endState.position, 1), set(endState.position, 0)),
+          cond(neq(endState.position, endState.disabled), set(endState.position, endState.disabled)),
           add(multiply(runClock, additionalScale), 1)
         ],
       )
@@ -332,6 +340,7 @@ class Dot extends Component {
         },
         clock,
         endClock,
+        endState,
         color: dotColor,
         rgb: {r, g, b},
         placeholder,
@@ -348,6 +357,7 @@ class Dot extends Component {
     scale, 
     gestureState, 
     endClock,
+    endState,
     zIndex,
     intersects,
     placeholder,
@@ -415,7 +425,8 @@ class Dot extends Component {
                 set(placeholder.b, rgb.b),
                 set(zIndex, 999),
                 set(scale.config.toValue, 1),
-                set(placeholder.scale, 0.5),
+                startClock(scale.clock),
+
                 cond(or(
                   clockRunning(ring.clock),
                   neq(ring.state.position, ringScales.disabled),
@@ -426,7 +437,6 @@ class Dot extends Component {
                   set(ring.state.velocity, 0),
                   set(ring.state.time, 0),
                 ]),
-                startClock(scale.clock),
               ]
             ),
             // Dot becoming inactive
@@ -438,10 +448,13 @@ class Dot extends Component {
                 debug('becoming inactive', scale.config.toValue),
                 cond(intersects, [
                   set(placeholder.a, 1),
+                  set(endState.position, endState.disabled),
                   startClock(endClock),
                 ], set(placeholder.a, 0)),
+
                 set(scale.config.toValue, 0),
                 startClock(scale.clock),
+
                 set(ring.config.toValue, cond(intersects, ringScales.out, ringScales.disabled)),
                 startClock(ring.clock),
                 set(zIndex, 0),
@@ -511,7 +524,7 @@ class Dot extends Component {
         key={`ring-${i}`}
         style={{
           position: 'absolute',
-          opacity: 0.85,
+          opacity: ring.opacity,
           width: dropZoneRadius,
           height: dropZoneRadius,
           borderRadius: dropZoneRadius,

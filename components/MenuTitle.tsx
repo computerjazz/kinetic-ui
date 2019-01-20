@@ -14,7 +14,7 @@ class MenuTitle extends React.Component {
         <Text style={{
           fontSize: 24,
           fontWeight: 'bold',
-          color: 'seashell',
+          color: this.props.color || 'seashell',
         }}>{this.props.text}</Text>
       </View>
     )

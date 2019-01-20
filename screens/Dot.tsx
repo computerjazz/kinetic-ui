@@ -7,7 +7,12 @@ import BackButton from '../components/BackButton'
 
 const { width, height } = Dimensions.get("window")
 
-const dotSize = 80
+const dropZoneRadius = width / 3
+const translateX = width / 2 - dropZoneRadius / 2
+const translateY = height / 2 - dropZoneRadius / 2
+
+const dotSize = width / 5
+
 const additionalScale = 0.5
 const numDots = 7
 const ringScales = {
@@ -18,10 +23,6 @@ const ringScales = {
 
 const dotCenterX = width / 2 - dotSize / 2
 const dotCenterY = height / 2 - dotSize / 2
-
-const dropZoneRadius = width / 3
-const translateX = width / 2 - dropZoneRadius / 2
-const translateY = height / 2 - dropZoneRadius / 2
 
 let {
   onChange,
@@ -199,7 +200,6 @@ class Dot extends Component {
         y: add(y.translate, dotRadius / 2,)
       }
 
-
       const intersects = cond(
           and(
             greaterThan(dotCenter.x, xl),
@@ -208,7 +208,6 @@ class Dot extends Component {
             lessThan(dotCenter.y, yb),
         ),1 , 0)
       
-
       const endClock = new Clock
       const endDisabled = 0.01
       const endState = {
@@ -328,7 +327,7 @@ class Dot extends Component {
 
       return {
         gestureState: new Value(State.UNDETERMINED),
-        zIndex: new Value(0),
+        zIndex: new Value(999),
         intersects,
         x,
         y,
@@ -423,7 +422,7 @@ class Dot extends Component {
                 set(placeholder.r, rgb.r),
                 set(placeholder.g, rgb.g),
                 set(placeholder.b, rgb.b),
-                set(zIndex, 999),
+                set(zIndex, 9999),
                 set(scale.config.toValue, 1),
                 startClock(scale.clock),
 
@@ -457,7 +456,7 @@ class Dot extends Component {
 
                 set(ring.config.toValue, cond(intersects, ringScales.out, ringScales.disabled)),
                 startClock(ring.clock),
-                set(zIndex, 0),
+                set(zIndex, 999),
               ]),
             set(gestureState, state),
           ])

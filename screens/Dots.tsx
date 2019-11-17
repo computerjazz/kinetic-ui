@@ -25,6 +25,7 @@ const dotCenterX = width / 2 - dotSize / 2
 const dotCenterY = height / 2 - dotSize / 2
 
 const {
+  debug,
   and,
   not,
   set,
@@ -482,6 +483,7 @@ class Dots extends Component {
             nativeEvent: ({ state, translationX, translationY }) => block([
               set(tapGestureState, state),
               onChange(tapGestureState, [
+                debug('TAPPED', tapGestureState),
                 cond(eq(tapGestureState, State.BEGAN), [
                   set(x.drag, translationX),
                   set(y.drag, translationY),

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Dimensions, View, StyleSheet, Text, SafeAreaView } from 'react-native'
 import Animated from 'react-native-reanimated'
-import { PanGestureHandler, State } from 'react-native-gesture-handler'
+import { PanGestureHandler, State, TapGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, TapGestureHandlerStateChangeEvent } from 'react-native-gesture-handler'
 
 import BackButton from '../components/BackButton'
 
@@ -34,6 +34,9 @@ const {
   abs,
   color,
   max,
+  min,
+  onChange,
+  debug,
 } = Animated;
 
 const numCards = 7
@@ -58,9 +61,11 @@ class Book extends React.Component {
   cumulativeTrans: Animated.Node<number>
   cardPanWidth: number
   currentIndex: Animated.Node<number>
-  panIndex: Animated.Value<number>
+  onTapStateChange: (e: TapGestureHandlerStateChangeEvent) => void
+  onGestureEvent: (e: PanGestureHandlerGestureEvent) => void
+  onHandlerStateChange: (e: PanGestureHandlerStateChangeEvent) => void
   cards
-  
+
 
   constructor(props) {
     super(props)
@@ -70,10 +75,10 @@ class Book extends React.Component {
 
     this.perspective = new Value(850)
     this.rawTrans = new Value(0)
-
     this.prevTrans = new Value(width)
     this.gestureState = new Value(State.UNDETERMINED)
     this.absPan = new Value(0)
+
     this.panPct = Animated.interpolate(this.absPan, {
       inputRange: [0, rampDist],
       outputRange: [0, 1],
@@ -83,6 +88,7 @@ class Book extends React.Component {
     this.transX = multiply(this.rawTrans, this.panPct)
 
     this.clock = new Clock()
+
     this.sprState = {
       position: new Value(0),
       velocity: new Value(0),
@@ -157,7 +163,6 @@ class Book extends React.Component {
       this.sprState.position,
     ]
 
-    this.panIndex = new Value(0)
     this.cards = [...Array(numCards)].fill(0).map((d, index, arr) => {
       const colorMultiplier = 255 / (arr.length)
       // const color = `rgba(${index * colorMultiplier}, ${Math.abs(128 - index * colorMultiplier)}, ${255 - (index * colorMultiplier)}, 0.9)`
@@ -201,6 +206,110 @@ class Book extends React.Component {
         zIndex,
       }
     })
+
+    const tapState = new Value(State.UNDETERMINED)
+
+    this.onGestureEvent = event([{
+      nativeEvent: ({ translationX }) => block([
+        cond(eq(this.gestureState, State.ACTIVE), [
+          cond(
+            or(
+              and(
+                greaterThan(this.currentIndex, -1),
+                lessThan(this.currentIndex, numCards),
+              ),
+              and(
+                not(greaterThan(this.currentIndex, -1)),
+                greaterThan(translationX, this.rawTrans),
+              ),
+              and(
+                not(lessThan(this.currentIndex, numCards)),
+                lessThan(translationX, this.rawTrans),
+              )
+            ), [
+            set(this.absPan,
+              add(
+                this.absPan,
+                abs(sub(this.rawTrans, translationX)),
+              )
+            ),
+            set(this.rawTrans, translationX),
+          ]
+          ),
+          cond(
+            clockRunning(this.clock), [
+            stopClock(this.clock),
+            set(this.sprState.finished, 0),
+            set(this.sprState.time, 0),
+            set(this.sprState.velocity, 0),
+          ]),
+          cond(
+            clockRunning(this.centerClock), [
+            stopClock(this.centerClock),
+            set(this.centerSprState.finished, 0),
+            set(this.centerSprState.time, 0),
+            set(this.centerSprState.velocity, 0),
+          ]),
+          cond(
+            greaterThan(this.sprState.position, 0),
+            set(
+              this.sprState.position,
+              max(0, multiply(this.sprState.position, .5)),
+            ),
+          ),
+        ])
+      ])
+    }])
+
+    this.onHandlerStateChange = event([{
+      nativeEvent: ({ state }) => block([
+        cond(and(eq(this.gestureState, State.ACTIVE), neq(state, State.ACTIVE)), [
+          set(this.centerSprConfig.toValue, add(
+            multiply(floor(this.currentIndex), this.cardPanWidth),
+            this.cardPanWidth / 2,
+          ),
+          ),
+          set(this.prevTrans, add(this.prevTrans, this.transX)),
+          set(this.rawTrans, 0),
+          set(this.absPan, 0),
+          startClock(this.centerClock),
+          startClock(this.clock)
+        ]),
+        set(this.gestureState, state),
+
+      ])
+    }])
+
+    const minMax = (val, minVal, maxVal) => min(maxVal, max(minVal, val))
+
+    this.onTapStateChange = event([{
+      nativeEvent: ({ state, x }) => block([
+        set(tapState, state),
+        onChange(tapState, [
+          cond(eq(tapState, State.END), [
+            debug('val', add(this.currentIndex, cond(greaterThan(x, screenWidth / 2), -1, 1))),
+
+            set(this.absPan, 0),
+            set(this.rawTrans, 0),
+            set(this.sprState.position, 0),
+            set(this.centerSprConfig.toValue,
+              multiply(
+                this.cardPanWidth,
+                minMax(
+                  add(this.currentIndex, cond(greaterThan(x, screenWidth / 2), -1, 1)),
+                  -0.5,
+                  numCards - 0.5,
+                ),
+              ),
+            ),
+            startClock(this.centerClock)
+
+          ])
+        ])
+      ])
+    }])
+
+
   }
 
   componentDidMount() {
@@ -213,7 +322,7 @@ class Book extends React.Component {
     this.willBlurSub && this.willBlurSub.remove()
   }
 
-  renderCard = ({ color, width, height, rotateY, translateX, translateY, zIndex }, index) => {
+  renderCard = ({ color, width, height, rotateY, zIndex }, index) => {
     return (
       <Animated.View
         key={`book-card-${index}`}
@@ -231,7 +340,9 @@ class Book extends React.Component {
             perspective: this.perspective,
             rotateY,
           }]
-        }} >
+        }}
+        >
+
           <Animated.View style={{
             opacity: 0.85,
             borderTopLeftRadius: 10,
@@ -239,9 +350,7 @@ class Book extends React.Component {
             backgroundColor: color,
             width: width,
             height,
-          }}>
-            <Text style={{ color: 'seashell', fontSize: 24, fontWeight: 'bold' }}>{}</Text>
-          </Animated.View>
+          }} />
         </Animated.View>
       </Animated.View>
     )
@@ -255,94 +364,32 @@ class Book extends React.Component {
       }}>
         <SafeAreaView style={{ flex: 1 }}>
           <PanGestureHandler
-            onGestureEvent={event([{
-              nativeEvent: ({ translationX, state }) => block([
-                cond(eq(this.gestureState, State.ACTIVE), [
-                  cond(
-                    or(
-                      and(
-                        greaterThan(this.currentIndex, -1),
-                        lessThan(this.currentIndex, numCards),
-                      ),
-                      and(
-                        not(greaterThan(this.currentIndex, -1)),
-                        greaterThan(translationX, this.rawTrans),
-                      ),
-                      and(
-                        not(lessThan(this.currentIndex, numCards)),
-                        lessThan(translationX, this.rawTrans),
-                      )
-                    ), [
-                    set(this.absPan,
-                      add(
-                        this.absPan,
-                        abs(sub(this.rawTrans, translationX)),
-                      )
-                    ),
-                    set(this.rawTrans, translationX),
-                  ]
-                  ),
-                  cond(
-                    clockRunning(this.clock), [
-                    stopClock(this.clock),
-                    set(this.sprState.finished, 0),
-                    set(this.sprState.time, 0),
-                    set(this.sprState.velocity, 0),
-                  ]),
-                  cond(
-                    clockRunning(this.centerClock), [
-                    stopClock(this.centerClock),
-                    set(this.centerSprState.finished, 0),
-                    set(this.centerSprState.time, 0),
-                    set(this.centerSprState.velocity, 0),
-                  ]),
-                  cond(
-                    greaterThan(this.sprState.position, 0),
-                    set(
-                      this.sprState.position,
-                      max(0, multiply(this.sprState.position, .5)),
-                    ),
-                  ),
-                ])
-              ])
-            }])}
-            onHandlerStateChange={event([{
-              nativeEvent: ({ state }) => block([
-                cond(and(eq(this.gestureState, State.ACTIVE), neq(state, State.ACTIVE)), [
-                  set(this.centerSprConfig.toValue, add(
-                    multiply(floor(this.currentIndex), this.cardPanWidth),
-                    this.cardPanWidth / 2,
-                  ),
-                  ),
-                  set(this.prevTrans, add(this.prevTrans, this.transX)),
-                  set(this.rawTrans, 0),
-                  set(this.absPan, 0),
-                  startClock(this.centerClock),
-                  startClock(this.clock)
-                ]),
-                set(this.gestureState, state),
-
-              ])
-            }])}
+            onGestureEvent={this.onGestureEvent}
+            onHandlerStateChange={this.onHandlerStateChange}
           >
             <Animated.View style={{
               ...StyleSheet.absoluteFillObject,
             }}>
-              <Animated.View style={{
-                ...StyleSheet.absoluteFillObject,
-                alignItems: 'center',
-                justifyContent: 'center',
-                transform: [{
-                  perspective: this.perspective,
-                  rotateX: Math.PI / 12,
-                }]
-              }}>
-                {this.cards.map(this.renderCard)}
-              </Animated.View>
+              <TapGestureHandler
+                onHandlerStateChange={this.onTapStateChange}
+              >
+                <Animated.View style={{
+                  ...StyleSheet.absoluteFillObject,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transform: [{
+                    perspective: this.perspective,
+                    rotateX: Math.PI / 12,
+                  }]
+                }}>
+                  {this.cards.map(this.renderCard)}
+                </Animated.View>
+              </TapGestureHandler>
+
             </Animated.View>
           </PanGestureHandler>
-          </SafeAreaView>
-          <BackButton />
+        </SafeAreaView>
+        <BackButton />
       </View>
     )
   }

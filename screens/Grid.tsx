@@ -121,6 +121,8 @@ class Grid extends React.Component<Props> {
     const multiplier = min(add(this.panRatio, runClock), 1)
     const colorMultiplier = 255 / numCards
 
+    const t = Date.now()
+
     this.cards = [...Array(numCards)].fill(0).map((_d, i) => {
       const row = Math.floor(i / cardsPerRow)
       const col = i - (cardsPerRow * row)
@@ -143,6 +145,8 @@ class Grid extends React.Component<Props> {
         scale: Procs.scale(pctX, pctY, multiplier)
       }
     })
+
+    console.log('CREATED DCARDS', Date.now() - t)
 
     this.onGestureEvent = event([{
       nativeEvent: ({ translationX, translationY, x, y }) => block([

@@ -9,7 +9,6 @@ const {
   add,
   sub,
   multiply,
-  divide,
   diff,
   min, 
   abs,
@@ -19,7 +18,6 @@ const {
   clockRunning,
   startClock,
   stopClock,
-  Clock,
   timing,
 } = Animated
 
@@ -27,8 +25,9 @@ const isAndroid = Platform.OS === 'android'
 
 class CarouselPreview extends React.Component {
 
-  constructor({ focused, clock, height, width }) {
-    super()
+  constructor(props) {
+    super(props)
+    const { focused, clock, height, width } = props
     this.mainHandler = React.createRef()
 
     this.translationX = new Value(0)
@@ -246,8 +245,9 @@ class CarouselPreview extends React.Component {
       <View style={{
         flex: 1,
         alignItems: 'center',
+        justifyContent: 'center',
         width: '100%',
-        padding: 30, 
+        // padding: 30, 
         overflow: 'hidden',
         backgroundColor: 'seashell',
         borderRadius: this.props.width,

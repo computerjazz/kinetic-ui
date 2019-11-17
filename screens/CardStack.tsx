@@ -48,12 +48,26 @@ const flingThresh = 500
 
 class CardStack extends Component {
 
-  constructor() {
-    super()
+  _mounted: Animated.Value<number>
+  mainHandler: React.RefObject<PanGestureHandler>
+  translationY: Animated.Value<number>
+  prevTrans: Animated.Value<number>
+  cumulativeTrans: Animated.Node<number>
+  gestureState: Animated.Value<State>
+  perspective: Animated.Value<number>
+  auto: Animated.Value<number>
+  clock: Animated.Clock
+  sprState: Animated.SpringState
+  sprConfig: Animated.SpringConfig
+  _tempOffset: Animated.Value<number>
+  activeIndex: Animated.Node<number>
+
+
+  constructor(props) {
+    super(props)
     this.mainHandler = React.createRef()
     this.translationY = new Value(0)
     this.prevTrans = new Value(0)
-    this.cumulativeTrans = new Value(0)
     this.gestureState = new Value(State.UNDETERMINED)
     this.perspective = new Value(850)
     this.auto = new Value(0)
@@ -65,19 +79,19 @@ class CardStack extends Component {
       velocity: new Value(0),
       position: new Value(0),
       time: new Value(0),
-    },
+    }
 
-      this.sprConfig = {
-        damping: 20,
-        mass: 0.3,
-        stiffness: 30,
-        overshootClamping: false,
-        toValue: new Value(0),
-        restSpeedThreshold: 0.001,
-        restDisplacementThreshold: 0.001,
-      },
+    this.sprConfig = {
+      damping: 20,
+      mass: 0.3,
+      stiffness: 30,
+      overshootClamping: false,
+      toValue: new Value(0),
+      restSpeedThreshold: 0.001,
+      restDisplacementThreshold: 0.001,
+    }
 
-      this._tempOffset = new Value(0)
+    this._tempOffset = new Value(0)
     this.cumulativeTrans = add(this.prevTrans, this.translationY, this.sprState.position)
 
     this.activeIndex = Animated.interpolate(modulo(this.cumulativeTrans, tickHeight * numCards), {
@@ -342,8 +356,8 @@ class CardStack extends Component {
               {this.cards.map(this.renderCard)}
             </Animated.View>
           </PanGestureHandler>
-          </SafeAreaView>
-          <BackButton />
+        </SafeAreaView>
+        <BackButton />
       </View>
     )
   }

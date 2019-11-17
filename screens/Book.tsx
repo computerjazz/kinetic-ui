@@ -124,6 +124,13 @@ class Book extends React.Component {
       restDisplacementThreshold: 0.001,
     }
 
+    const resetCenterClock = [
+      stopClock(this.centerClock),
+      set(this.centerSprState.velocity, 0),
+      set(this.centerSprState.time, 0),
+      set(this.centerSprState.finished, 0),
+    ]
+
     const runCenterClock = [
       cond(clockRunning(this.centerClock), [
         spring(this.centerClock, this.centerSprState, this.centerSprConfig),
@@ -131,13 +138,7 @@ class Book extends React.Component {
           or(
             this.centerSprState.finished,
             not(this._mounted)
-
-          ), [
-          stopClock(this.centerClock),
-          set(this.centerSprState.velocity, 0),
-          set(this.centerSprState.time, 0),
-          set(this.centerSprState.finished, 0),
-        ])
+          ), resetCenterClock)
       ]),
       this.centerSprState.position,
     ]
@@ -147,18 +148,20 @@ class Book extends React.Component {
     this.cardPanWidth = panRange / numCards
     this.currentIndex = divide(this.cumulativeTrans, this.cardPanWidth)
 
+    const resetClock = [
+      stopClock(this.clock),
+      set(this.sprState.velocity, 0),
+      set(this.sprState.finished, 0),
+      set(this.sprState.time, 0),
+    ]
+
     const runClock = [
       cond(clockRunning(this.clock), [
         spring(this.clock, this.sprState, this.sprConfig),
         cond(or(
           this.sprState.finished,
           not(this._mounted)
-        ), [
-          stopClock(this.clock),
-          set(this.sprState.velocity, 0),
-          set(this.sprState.finished, 0),
-          set(this.sprState.time, 0),
-        ])
+        ), resetClock)
       ]),
       this.sprState.position,
     ]
@@ -244,12 +247,7 @@ class Book extends React.Component {
             set(this.sprState.velocity, 0),
           ]),
           cond(
-            clockRunning(this.centerClock), [
-            stopClock(this.centerClock),
-            set(this.centerSprState.finished, 0),
-            set(this.centerSprState.time, 0),
-            set(this.centerSprState.velocity, 0),
-          ]),
+            clockRunning(this.centerClock), resetCenterClock),
           cond(
             greaterThan(this.sprState.position, 0),
             set(
@@ -288,9 +286,9 @@ class Book extends React.Component {
         onChange(tapState, [
           cond(eq(tapState, State.END), [
             debug('val', add(this.currentIndex, cond(greaterThan(x, screenWidth / 2), -1, 1))),
+            resetClock,
+            resetCenterClock,
 
-            set(this.absPan, 0),
-            set(this.rawTrans, 0),
             set(this.sprState.position, 0),
             set(this.centerSprConfig.toValue,
               multiply(

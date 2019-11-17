@@ -46,7 +46,7 @@ const screens = [
   },
   {
     title: "Dots",
-    screen: "Dot",
+    screen: "Dots",
     Preview: DotPreview,
   }
 

@@ -1,17 +1,12 @@
 import React, { Component } from 'react'
-import { View, Dimensions, Text, Platform } from 'react-native'
+import { View, Dimensions, Text } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 
-const isAndroid = Platform.OS === 'android'
-
-
 const { width, height } = Dimensions.get('window');
-console.log('width', width)
 
 const {
   onChange,
-  debug,
   and,
   not,
   set,
@@ -22,17 +17,13 @@ const {
   add,
   multiply,
   greaterThan,
-  lessThan,
   spring,
   timing,
-  divide,
   block,
-  round,
   startClock,
   stopClock,
   clockRunning,
   sub,
-  defined,
   Value,
   Clock,
   event,
@@ -41,12 +32,32 @@ const {
   abs,
   diff,
   min,
-  max,
 } = Animated;
 
 import BackButton from '../components/BackButton'
-class CardStack extends Component {
+
+interface Props {
+  navigation: any
+} 
+
+class CardStack extends Component<Props> {
   state = {}
+
+  mainHandler: React.RefObject<PanGestureHandler>
+  translationX: Animated.Value<number>
+  prevTrans: Animated.Value<number>
+  cumulativeTrans: Animated.Value<number>
+  perspective: Animated.Value<number>
+  gestureState: Animated.Value<State>
+  activeCardIndex: Animated.Value<number>
+  clock: Animated.Clock
+  altClock: Animated.Clock
+  _mounted: Animated.Value<number>
+  _temp: Animated.Value<number>
+  animState: Animated.TimingState
+  animConfig: Animated.TimingConfig
+  altState: Animated.SpringState
+  altConfig: Animated.SpringConfig
 
   constructor() {
     super()
@@ -75,7 +86,7 @@ class CardStack extends Component {
       toValue: new Value(0),
       duration: new Value(5000),
       easing: Easing.out(Easing.ease),
-    } 
+    }
 
 
     this.altState = {
@@ -93,7 +104,7 @@ class CardStack extends Component {
       toValue: new Value(0),
       restSpeedThreshold: 0.001,
       restDisplacementThreshold: 0.001,
-    } 
+    }
 
     const numCards = 7
     const tickWidth = width / 2
@@ -102,7 +113,7 @@ class CardStack extends Component {
 
     this._temp = new Value(0)
 
-    this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
+    this.cards = [...Array(numCards)].fill(0).map((_d, i, arr) => {
       const colorMultiplier = 255 / maxIndex
       const index = new Value(i)
 
@@ -114,14 +125,14 @@ class CardStack extends Component {
               not(this._mounted),
               and(this.animState.finished, clockRunning(this.clock))
             ),
-             [
-            stopClock(this.clock),
-            set(this.prevTrans, add(this.prevTrans, this.animState.position)),
-            set(this.animState.position, 0),
-            set(this.animState.time, 0),
-            set(this.animState.frameTime, 0),
-            set(this.animState.finished, 0),
-          ]),
+            [
+              stopClock(this.clock),
+              set(this.prevTrans, add(this.prevTrans, this.animState.position)),
+              set(this.animState.position, 0),
+              set(this.animState.time, 0),
+              set(this.animState.frameTime, 0),
+              set(this.animState.finished, 0),
+            ]),
         ]),
         cond(clockRunning(this.altClock), [
           spring(this.altClock, this.altState, this.altConfig),
@@ -133,7 +144,7 @@ class CardStack extends Component {
             set(this.altState.position, 0),
           ]),
         ])
-        
+
       ]
 
       const cumulativeTrans = add(this.prevTrans, this.translationX, this.animState.position) // TODO: figure out how to do this without inverting
@@ -143,14 +154,14 @@ class CardStack extends Component {
         outputRange: [sub(index, 1), index, add(index, 1)],
       })
 
-      const leanAmt =  multiply(diff(cumulativeTrans), 0.005)
+      const leanAmt = multiply(diff(cumulativeTrans), 0.005)
       const transToIndex = modulo([
-        runClock, 
+        runClock,
         set(this._temp, leanAmt),
         interpolated], arr.length)
 
       const rotateX = multiply(min(0.2, abs(add(leanAmt, this.altState.position))), -1)
-      const rotateY = Animated.interpolate( transToIndex, {
+      const rotateY = Animated.interpolate(transToIndex, {
         inputRange: [0, numCards],
         outputRange: [0, Math.PI * 2],
       })
@@ -196,7 +207,7 @@ class CardStack extends Component {
         toValue: new Value(0),
         restSpeedThreshold: 0.001,
         restDisplacementThreshold: 0.001,
-      } 
+      }
 
       return {
         color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
@@ -220,7 +231,7 @@ class CardStack extends Component {
   }
 
 
-  renderCard = ({ handlerRef, cardTransY, cardClock, cardState, cardConfig, cardGestureState, index, color, scale, translateX, translateY, zIndex, rotateY, rotateX, size, perspective }, i) => {
+  renderCard = ({ handlerRef, cardTransY, cardClock, cardState, cardConfig, cardGestureState, color, scale, translateX, translateY, zIndex, rotateY, rotateX, size, perspective }, i) => {
     // @NOTE: PanGestureHandler should not directly wrap an element that can rotate completely on edge.
     // this causes values to go to infinity.
     return (
@@ -239,7 +250,7 @@ class CardStack extends Component {
           nativeEvent: ({ state }) => block([
             cond(
               and(neq(state, State.ACTIVE), eq(cardGestureState, State.ACTIVE)), [
-                startClock(cardClock),
+              startClock(cardClock),
             ]),
             cond(and(eq(state, State.ACTIVE), clockRunning(cardClock)), [
               stopClock(cardClock),
@@ -253,56 +264,56 @@ class CardStack extends Component {
           ])
         }])}
       >
-      <Animated.View style={{ 
-        zIndex, 
-        position: 'absolute', 
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: size / 4,
-        height: size,
-        transform: [{
-          perspective,
-          translateX,
-          scaleX: scale,
-          scaleY: scale,
-        }]
-      }}>
-      <Animated.View
-        style={{
+        <Animated.View style={{
+          zIndex,
           position: 'absolute',
           alignItems: 'center',
           justifyContent: 'center',
           width: size / 4,
           height: size,
-          backgroundColor: color,
-          borderRadius: 10,
-          zIndex,
           transform: [{
             perspective,
-            translateY: block([
-              cond(and(clockRunning(cardClock), cardState.finished), [
-                stopClock(cardClock),
-                set(cardState.position, 1),
-                set(cardState.finished, 0),
-                set(cardState.time, 0),
-                set(cardState.velocity, 0),
-                set(cardTransY, 0),
-              ]),
-              cond(clockRunning(cardClock), [
-                spring(cardClock, cardState, cardConfig),
-                multiply(add(translateY, cardTransY), cardState.position),
-              ], [
-                add(translateY, cardTransY),
-              ]),
-            ]),
-            rotateY,
-            rotateX,
+            translateX,
+            scaleX: scale,
+            scaleY: scale,
           }]
-        }}
-      >
-      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold'}}>{}</Text>
-      </Animated.View>
-      </Animated.View>
+        }}>
+          <Animated.View
+            style={{
+              position: 'absolute',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: size / 4,
+              height: size,
+              backgroundColor: color,
+              borderRadius: 10,
+              zIndex,
+              transform: [{
+                perspective,
+                translateY: block([
+                  cond(and(clockRunning(cardClock), cardState.finished), [
+                    stopClock(cardClock),
+                    set(cardState.position, 1),
+                    set(cardState.finished, 0),
+                    set(cardState.time, 0),
+                    set(cardState.velocity, 0),
+                    set(cardTransY, 0),
+                  ]),
+                  cond(clockRunning(cardClock), [
+                    spring(cardClock, cardState, cardConfig),
+                    multiply(add(translateY, cardTransY), cardState.position),
+                  ], [
+                    add(translateY, cardTransY),
+                  ]),
+                ]),
+                rotateY,
+                rotateX,
+              }]
+            }}
+          >
+            <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>{}</Text>
+          </Animated.View>
+        </Animated.View>
       </PanGestureHandler>
     )
   }
@@ -327,90 +338,88 @@ class CardStack extends Component {
       }}>
         <TapGestureHandler
           onHandlerStateChange={event([
-            { nativeEvent: ({ state }) => block([
-              cond(eq(state, State.BEGAN), [ 
-                cond(clockRunning(this.clock), [
-                  set(this.altState.position, this._temp),
-                  startClock(this.altClock),
-                  stopClock(this.clock),
-                  set(this.prevTrans, add(this.prevTrans, this.animState.position)),
-                  set(this.animState.position, 0),
-                  set(this.animState.time, 0),
-                  set(this.animState.frameTime, 0),
-                  set(this.animState.finished, 0)
-                ])
-              
-              ])
-            ])}
-          ])}
-        >
-        <Animated.View style={{ flex: 1 }}>
-        <PanGestureHandler
-        ref={this.mainHandler}
-          onGestureEvent={event([{
-            nativeEvent: ({ translationX: x, velocityX, state }) => block([
-              cond(eq(this.gestureState, State.ACTIVE), [
-                set(this.translationX, x),
-                set(this.velocity, velocityX),
-              ])
-            ])
-          }])}
-          onHandlerStateChange={event([{
-            nativeEvent: ({ state }) => block([
-              set(this.gestureState, state),
-              onChange(this.gestureState, [
-                cond(eq(this.gestureState, State.ACTIVE), [
+            {
+              nativeEvent: ({ state }) => block([
+                cond(eq(state, State.BEGAN), [
                   cond(clockRunning(this.clock), [
+                    set(this.altState.position, this._temp),
+                    startClock(this.altClock),
                     stopClock(this.clock),
-                    set(this.animState.time, 0),
+                    set(this.prevTrans, add(this.prevTrans, this.animState.position)),
                     set(this.animState.position, 0),
+                    set(this.animState.time, 0),
                     set(this.animState.frameTime, 0),
                     set(this.animState.finished, 0)
-                  ]),
-                ]),
+                  ])
 
-                cond(eq(this.gestureState, State.END),
-                  [
-                    set(this.prevTrans, add(this.translationX, this.prevTrans)),
-                    set(this.translationX, 0),
-                    cond(clockRunning(this.clock), [
-                      stopClock(this.clock),
-                      set(this.animState.time, 0),
-                      set(this.animState.position, 0),
-                      set(this.animState.frameTime, 0),
-                      set(this.animState.finished, 0)
-                    ]),
-                    cond(greaterThan(abs(this.velocity), 0), [
-                      set(this.animConfig.toValue, this.velocity),
-                      set(this.animConfig.duration, 5000),
-                      set(this.animState.time, 0),
-                      set(this.animState.position, 0),
-                      set(this.animState.frameTime, 0),
-                      set(this.animState.finished, 0),
-                      startClock(this.clock),
-                    ]),
-                  ]),
-              ]),
-            ])
-          }]
-          )}
+                ])
+              ])
+            }
+          ])}
         >
-          <Animated.View style={{ 
-            flex: 1, 
-            marginTop: 50, 
-            alignItems: 'center', 
-            justifyContent: 'center' ,
-          }}>
-            {this.cards.map(this.renderCard)}
+          <Animated.View style={{ flex: 1 }}>
+            <PanGestureHandler
+              ref={this.mainHandler}
+              onGestureEvent={event([{
+                nativeEvent: ({ translationX: x, velocityX, state }) => block([
+                  cond(eq(this.gestureState, State.ACTIVE), [
+                    set(this.translationX, x),
+                    set(this.velocity, velocityX),
+                  ])
+                ])
+              }])}
+              onHandlerStateChange={event([{
+                nativeEvent: ({ state }) => block([
+                  set(this.gestureState, state),
+                  onChange(this.gestureState, [
+                    cond(eq(this.gestureState, State.ACTIVE), [
+                      cond(clockRunning(this.clock), [
+                        stopClock(this.clock),
+                        set(this.animState.time, 0),
+                        set(this.animState.position, 0),
+                        set(this.animState.frameTime, 0),
+                        set(this.animState.finished, 0)
+                      ]),
+                    ]),
+
+                    cond(eq(this.gestureState, State.END),
+                      [
+                        set(this.prevTrans, add(this.translationX, this.prevTrans)),
+                        set(this.translationX, 0),
+                        cond(clockRunning(this.clock), [
+                          stopClock(this.clock),
+                          set(this.animState.time, 0),
+                          set(this.animState.position, 0),
+                          set(this.animState.frameTime, 0),
+                          set(this.animState.finished, 0)
+                        ]),
+                        cond(greaterThan(abs(this.velocity), 0), [
+                          set(this.animConfig.toValue, this.velocity),
+                          set(this.animConfig.duration, 5000),
+                          set(this.animState.time, 0),
+                          set(this.animState.position, 0),
+                          set(this.animState.frameTime, 0),
+                          set(this.animState.finished, 0),
+                          startClock(this.clock),
+                        ]),
+                      ]),
+                  ]),
+                ])
+              }]
+              )}
+            >
+              <Animated.View style={{
+                flex: 1,
+                marginTop: 50,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                {this.cards.map(this.renderCard)}
+              </Animated.View>
+            </PanGestureHandler>
           </Animated.View>
-        </PanGestureHandler>
-        </Animated.View>
-          </TapGestureHandler>
-        <BackButton color="#ddd" 
-        onPress={() => {
-          // this._mounted.setValue(0)
-          this.props.navigation.goBack(null)
-        }} />
+        </TapGestureHandler>
+        <BackButton />
       </View>
     )
   }

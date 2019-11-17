@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Dimensions, Image, Text, View, StyleSheet, TouchableOpacity, StatusBar, Platform } from 'react-native';
+import { Dimensions, StyleSheet, SafeAreaView } from 'react-native';
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 
@@ -24,9 +24,7 @@ const ringScales = {
 const dotCenterX = width / 2 - dotSize / 2
 const dotCenterY = height / 2 - dotSize / 2
 
-let {
-  onChange,
-  debug,
+const {
   and,
   not,
   set,
@@ -45,20 +43,28 @@ let {
   stopClock,
   clockRunning,
   sub,
-  defined,
-  Value,
-  Clock,
   event,
   sin,
-  cos,
   round,
   abs,
   color,
-  call,
+  onChange,
+  Value,
+  Clock,
 } = Animated;
 
 
-class Dot extends Component {
+type Dot = {
+
+}
+
+class Dots extends Component {
+
+  dropZoneRotate: Animated.Node<number>
+  scaleVal: Animated.Value<number>
+  scaleConfig: Animated.TimingConfig
+  dropZoneScale: Animated.Node<number>
+  dots: Dot[]
 
   constructor(props) {
     super(props);
@@ -141,7 +147,7 @@ class Dot extends Component {
 
       const startX = new Value(dotCenterX + Math.sin(ratio * Math.PI * 2) * dropZoneRadius)
       const startY = new Value(dotCenterY + Math.cos(ratio * Math.PI * 2) * dropZoneRadius)
-      
+
       const prevX = new Value(0);
       const prevY = new Value(0);
 
@@ -197,17 +203,17 @@ class Dot extends Component {
 
       const dotCenter = {
         x: add(x.translate, dotRadius / 2),
-        y: add(y.translate, dotRadius / 2,)
+        y: add(y.translate, dotRadius / 2)
       }
 
       const intersects = cond(
-          and(
-            greaterThan(dotCenter.x, xl),
-            lessThan(dotCenter.x, xr),
-            greaterThan(dotCenter.y, yt),
-            lessThan(dotCenter.y, yb),
-        ),1 , 0)
-      
+        and(
+          greaterThan(dotCenter.x, xl),
+          lessThan(dotCenter.x, xr),
+          greaterThan(dotCenter.y, yt),
+          lessThan(dotCenter.y, yb),
+        ), 1, 0)
+
       const endClock = new Clock
       const endDisabled = 0.01
       const endState = {
@@ -317,16 +323,17 @@ class Dot extends Component {
 
       const scale = cond(
         clockRunning(endClock), [
-          set(placeholder.scale, multiply(add(1, additionalScale), add(1, multiply(-1, runEndClock)))),
-          runEndClock, 
-          ], [
-          cond(neq(endState.position, endState.disabled), set(endState.position, endState.disabled)),
-          add(multiply(runClock, additionalScale), 1)
-        ],
+        set(placeholder.scale, multiply(add(1, additionalScale), add(1, multiply(-1, runEndClock)))),
+        runEndClock,
+      ], [
+        cond(neq(endState.position, endState.disabled), set(endState.position, endState.disabled)),
+        add(multiply(runClock, additionalScale), 1)
+      ],
       )
 
       return {
-        gestureState: new Value(State.UNDETERMINED),
+        panGestureState: new Value(State.UNDETERMINED),
+        tapGestureState: new Value(State.UNDETERMINED),
         zIndex: new Value(999),
         intersects,
         x,
@@ -341,20 +348,21 @@ class Dot extends Component {
         endClock,
         endState,
         color: dotColor,
-        rgb: {r, g, b},
+        rgb: { r, g, b },
         placeholder,
         ring,
       }
     })
   }
 
-  renderDot = ({ 
+  renderDot = ({
     x,
     y,
     color,
     rgb,
-    scale, 
-    gestureState, 
+    scale,
+    panGestureState,
+    tapGestureState,
     endClock,
     endState,
     zIndex,
@@ -363,21 +371,60 @@ class Dot extends Component {
     ring,
   }, i) => {
 
+    const onDotInactive = [
+      cond(intersects, [
+        set(placeholder.a, 1),
+        set(endState.position, endState.disabled),
+        startClock(endClock),
+      ], set(placeholder.a, 0)),
+
+      set(scale.config.toValue, 0),
+      startClock(scale.clock),
+
+      set(ring.config.toValue, cond(intersects, ringScales.out, ringScales.disabled)),
+      startClock(ring.clock),
+      set(zIndex, 999),
+    ]
+
+    const onDotActive = [
+      set(ring.a, 0), // Hide ring spring back to center
+      set(placeholder.a, 0),
+      set(ring.r, rgb.r),
+      set(ring.g, rgb.g),
+      set(ring.b, rgb.b),
+      set(placeholder.r, rgb.r),
+      set(placeholder.g, rgb.g),
+      set(placeholder.b, rgb.b),
+      set(zIndex, 9999),
+      set(scale.config.toValue, 1),
+      startClock(scale.clock),
+
+      cond(or(
+        clockRunning(ring.clock),
+        neq(ring.state.position, ringScales.disabled),
+      ), [
+        stopClock(ring.clock),
+        set(ring.state.position, ringScales.disabled),
+        set(ring.state.finished, 0),
+        set(ring.state.velocity, 0),
+        set(ring.state.time, 0),
+      ]),
+    ]
+
     return (
       <PanGestureHandler
         key={`dot-${i}`}
         onGestureEvent={event([{
-          nativeEvent: ({ translationX, translationY, state }) => block([
-            cond(eq(gestureState, State.ACTIVE), [
+          nativeEvent: ({ translationX, translationY }) => block([
+            cond(eq(panGestureState, State.ACTIVE), [
               // Dot entering center
               cond(
                 and(
-                  intersects, 
+                  intersects,
                   not(clockRunning(ring.clock)),
                   neq(ring.state.position, ringScales.in),
-                ), 
+                ),
                 [
-                  debug('entering center', ring.state.position),
                   set(ring.a, 1),
                   set(ring.state.position, ringScales.disabled),
                   set(ring.config.toValue, ringScales.in),
@@ -391,10 +438,9 @@ class Dot extends Component {
                   not(clockRunning(ring.clock)),
                   neq(ring.state.position, ringScales.disabled),
                 ), [
-                  debug('leaving center', ring.state.position),
-                  set(ring.config.toValue, ringScales.disabled),
-                  startClock(ring.clock),
-                ]
+                set(ring.config.toValue, ringScales.disabled),
+                startClock(ring.clock),
+              ]
               ),
               set(x.drag, translationX),
               set(y.drag, translationY),
@@ -407,58 +453,13 @@ class Dot extends Component {
         }])}
         onHandlerStateChange={event([{
           nativeEvent: ({ state }) => block([
-            // Dot becoming active
-            cond(
-              and(
-                neq(gestureState, State.ACTIVE),
-                eq(state, State.ACTIVE),
-              ), [
-                debug('becoming active', scale.config.toValue),
-                set(ring.a, 0), // Hide ring spring back to center
-                set(placeholder.a, 0),
-                set(ring.r, rgb.r),
-                set(ring.g, rgb.g),
-                set(ring.b, rgb.b),
-                set(placeholder.r, rgb.r),
-                set(placeholder.g, rgb.g),
-                set(placeholder.b, rgb.b),
-                set(zIndex, 9999),
-                set(scale.config.toValue, 1),
-                startClock(scale.clock),
-
-                cond(or(
-                  clockRunning(ring.clock),
-                  neq(ring.state.position, ringScales.disabled),
-                ), [
-                  stopClock(ring.clock),
-                  set(ring.state.position, ringScales.disabled),
-                  set(ring.state.finished, 0),
-                  set(ring.state.velocity, 0),
-                  set(ring.state.time, 0),
-                ]),
-              ]
-            ),
             // Dot becoming inactive
             cond(
               and(
-                eq(gestureState, State.ACTIVE),
+                eq(panGestureState, State.ACTIVE),
                 neq(state, State.ACTIVE),
-              ), [
-                debug('becoming inactive', scale.config.toValue),
-                cond(intersects, [
-                  set(placeholder.a, 1),
-                  set(endState.position, endState.disabled),
-                  startClock(endClock),
-                ], set(placeholder.a, 0)),
-
-                set(scale.config.toValue, 0),
-                startClock(scale.clock),
-
-                set(ring.config.toValue, cond(intersects, ringScales.out, ringScales.disabled)),
-                startClock(ring.clock),
-                set(zIndex, 999),
-              ]),
-            set(gestureState, state),
+              ), onDotInactive),
+            set(panGestureState, state),
           ])
         }])}
       >
@@ -476,6 +477,21 @@ class Dot extends Component {
             }]
           }}
         >
+        <TapGestureHandler
+          onHandlerStateChange={event([{
+            nativeEvent: ({ state, translationX, translationY }) => block([
+              set(tapGestureState, state),
+              onChange(tapGestureState, [
+                cond(eq(tapGestureState, State.BEGAN), [
+                  set(x.drag, translationX),
+                  set(y.drag, translationY),
+                  onDotActive
+                ]),
+                cond(eq(tapGestureState, State.END), onDotInactive),
+              ])
+            ])
+          }])}
+        >
           <Animated.View
             style={{
               position: 'absolute',
@@ -490,7 +506,7 @@ class Dot extends Component {
               }]
             }}
           />
- 
+            </TapGestureHandler>
         </Animated.View>
       </PanGestureHandler>
     )
@@ -571,17 +587,19 @@ class Dot extends Component {
   render() {
     return (
       <Animated.View style={styles.container}>
-        {this.dots.map(this.renderRing)}
-        {this.dots.map(this.renderPlaceholder)}
-        {this.renderDropZone()}
-        {this.dots.map(this.renderDot)}
-        <BackButton onPress={() => this.props.navigation.goBack(null)} />
+        <SafeAreaView>
+          {this.dots.map(this.renderRing)}
+          {this.dots.map(this.renderPlaceholder)}
+          {this.renderDropZone()}
+          {this.dots.map(this.renderDot)}
+          </SafeAreaView>
+          <BackButton />
       </Animated.View>
     )
   }
 }
 
-export default Dot
+export default Dots
 
 const styles = StyleSheet.create({
   container: {

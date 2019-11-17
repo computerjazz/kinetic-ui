@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { View, Dimensions, Text, Platform, Animated as RNAnimated } from 'react-native'
+import { View, Dimensions, Text, Platform, Animated as RNAnimated, SafeAreaView } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 import BackButton from '../components/BackButton'
@@ -79,11 +79,11 @@ class CardStack extends Component {
 
       this._tempOffset = new Value(0)
     this.cumulativeTrans = add(this.prevTrans, this.translationY, this.sprState.position)
-      
-    this.activeIndex = Animated.interpolate(modulo(this.cumulativeTrans, tickHeight * numCards),{
-        inputRange: [0, tickHeight],
-        outputRange: [0, 1],
-      })
+
+    this.activeIndex = Animated.interpolate(modulo(this.cumulativeTrans, tickHeight * numCards), {
+      inputRange: [0, tickHeight],
+      outputRange: [0, 1],
+    })
 
     this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
       const colorMultiplier = 255 / (arr.length - 1)
@@ -120,9 +120,9 @@ class CardStack extends Component {
         runClock,
         transToIndex,
       ], {
-          inputRange: [0, 0.5, 0.75, 1, arr.length],
-          outputRange: [0, size, size * 1.9, size * 1.25, 0],
-        }), 60)
+        inputRange: [0, 0.5, 0.75, 1, arr.length],
+        outputRange: [0, size, size * 1.9, size * 1.25, 0],
+      }), 60)
 
       const translateY = indexToTrans
 
@@ -278,75 +278,73 @@ class CardStack extends Component {
         flex: 1,
         backgroundColor: 'seashell',
       }}>
+        <SafeAreaView style={{ flex: 1 }}>
 
-        <PanGestureHandler
-          ref={this.mainHandler}
-          onGestureEvent={event([{
-            nativeEvent: ({ translationY: y, velocityY, state }) => block([
-              cond(eq(this.gestureState, State.ACTIVE), [
-                set(this.translationY, y),
-                set(this.velocity, velocityY),
+
+          <PanGestureHandler
+            ref={this.mainHandler}
+            onGestureEvent={event([{
+              nativeEvent: ({ translationY: y, velocityY, state }) => block([
+                cond(eq(this.gestureState, State.ACTIVE), [
+                  set(this.translationY, y),
+                  set(this.velocity, velocityY),
+                ])
               ])
-            ])
-          }])}
-          onHandlerStateChange={event([{
-            nativeEvent: ({ state, velocityY }) => block([
-              cond(and(eq(state, State.ACTIVE), clockRunning(this.clock)), [
-                stopClock(this.clock),
-                set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
-                set(this.sprState.position, 0),
-                set(this.sprState.time, 0),
-                set(this.sprState.velocity, 0),
-                set(this.sprState.finished, 0),
-              ]),
+            }])}
+            onHandlerStateChange={event([{
+              nativeEvent: ({ state, velocityY }) => block([
+                cond(and(eq(state, State.ACTIVE), clockRunning(this.clock)), [
+                  stopClock(this.clock),
+                  set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
+                  set(this.sprState.position, 0),
+                  set(this.sprState.time, 0),
+                  set(this.sprState.velocity, 0),
+                  set(this.sprState.finished, 0),
+                ]),
 
-              cond(and(neq(this.gestureState, State.END), eq(state, State.END)), [
-                set(this.prevTrans, add(this.translationY, this.prevTrans)),
+                cond(and(neq(this.gestureState, State.END), eq(state, State.END)), [
+                  set(this.prevTrans, add(this.translationY, this.prevTrans)),
 
-                // if translate amt is greater than tickHeight / 2 or is fling gesture
-                // snap to next index, otherwise snap back to current index
-                set(this.sprConfig.toValue, cond(
-                  [
-                    or(
-                      greaterThan(this.velocity, flingThresh), // Fling down
-                      and(
-                        not(lessThan(this.velocity, -flingThresh)), // Fling up
-                        greaterThan(modulo(this.prevTrans, tickHeight), tickHeight / 2),
+                  // if translate amt is greater than tickHeight / 2 or is fling gesture
+                  // snap to next index, otherwise snap back to current index
+                  set(this.sprConfig.toValue, cond(
+                    [
+                      or(
+                        greaterThan(this.velocity, flingThresh), // Fling down
+                        and(
+                          not(lessThan(this.velocity, -flingThresh)), // Fling up
+                          greaterThan(modulo(this.prevTrans, tickHeight), tickHeight / 2),
                         )
-                    )
-                  ],
-                  [
-                    // snap to next index
-                    set(this._tempOffset, sub(tickHeight, modulo(this.prevTrans, tickHeight))),
-                  ], [
+                      )
+                    ],
+                    [
+                      // snap to next index
+                      set(this._tempOffset, sub(tickHeight, modulo(this.prevTrans, tickHeight))),
+                    ], [
                     // snap to current index
                     set(this._tempOffset, multiply(modulo(this.prevTrans, tickHeight), -1)),
                   ])
-                ),
-                startClock(this.clock),
-                set(this.translationY, 0),
-              ]),
-              set(this.gestureState, state),
-            ])
-          }]
-          )}
-        >
+                  ),
+                  startClock(this.clock),
+                  set(this.translationY, 0),
+                ]),
+                set(this.gestureState, state),
+              ])
+            }]
+            )}
+          >
 
-          <Animated.View style={{
-            flex: 1,
-            marginTop: 50,
-            alignItems: 'center',
-          }}>
-            {this.cards.map(this.renderCard)}
-          </Animated.View>
-        </PanGestureHandler>
-        <BackButton color="#ddd"
-
-          onPress={() => {
-            this.props.navigation.goBack(null)
-          }} />
+            <Animated.View style={{
+              flex: 1,
+              marginTop: 50,
+              alignItems: 'center',
+            }}>
+              {this.cards.map(this.renderCard)}
+            </Animated.View>
+          </PanGestureHandler>
+          </SafeAreaView>
+          <BackButton />
       </View>
-
     )
   }
 }

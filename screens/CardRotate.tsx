@@ -1,41 +1,44 @@
-  import React, { Component } from 'react'
-import { View, Dimensions, Text } from 'react-native'
-import Animated, { Easing } from 'react-native-reanimated';
-import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
+import React, { Component } from 'react'
+import { Dimensions, SafeAreaView } from 'react-native'
+import Animated from 'react-native-reanimated';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 
 const { width, height } = Dimensions.get('window');
 
 const {
-  onChange,
   debug,
-  and,
-  not,
   set,
-  neq,
   cond,
   eq,
   or,
-  add,
   multiply,
-  greaterThan,
-  lessThan,
   spring,
-  timing,
   block,
   startClock,
   stopClock,
   clockRunning,
-  sub,
-  defined,
   Value,
   Clock,
   event,
-  sin,
 } = Animated;
 
 import BackButton from '../components/BackButton'
 
 class Card extends Component {
+
+  translationX: Animated.Value<number>
+  translationY: Animated.Value<number>
+  perspective: Animated.Value<number>
+  gestureState: Animated.Value<State>
+  rotateX: Animated.Node<string>
+  rotateY: Animated.Node<string>
+  springState: Animated.SpringState
+  springConfig: Animated.SpringConfig
+  clock: Animated.Clock
+  _x: Animated.Node<number>
+  _y: Animated.Node<number>
+  _lastX: Animated.Value<number>
+  _lastY: Animated.Value<number>
 
   constructor() {
     super()
@@ -45,7 +48,7 @@ class Card extends Component {
 
 
     this.rotateX = Animated.concat(
-        Animated.interpolate(this.translationY, {
+      Animated.interpolate(this.translationY, {
         inputRange: [-height / 2, 0, height / 2],
         outputRange: [180, 0, -180],
         extrapolate: Animated.Extrapolate.CLAMP,
@@ -55,11 +58,11 @@ class Card extends Component {
 
     this.rotateY = Animated.concat(
       Animated.interpolate(this.translationX, {
-      inputRange: [-width, 0, width],
-      outputRange: [-180, 0, 180],
-      extrapolate: Animated.Extrapolate.CLAMP,
-    }), 
-    'deg',
+        inputRange: [-width, 0, width],
+        outputRange: [-180, 0, 180],
+        extrapolate: Animated.Extrapolate.CLAMP,
+      }),
+      'deg',
     )
 
     this.perspective = new Value(850)
@@ -148,10 +151,10 @@ class Card extends Component {
 
     this._y = block([
       cond(isActive, this.rotateY,
-       cond(hasMoved, [
-        set(this.translationX, multiply(this._lastX, this.springState.position)),
-        this.rotateY,
-       ], this.rotateY)
+        cond(hasMoved, [
+          set(this.translationX, multiply(this._lastX, this.springState.position)),
+          this.rotateY,
+        ], this.rotateY)
       )
     ])
   }
@@ -164,60 +167,61 @@ class Card extends Component {
     return (
       <PanGestureHandler
         onGestureEvent={event([{
-          nativeEvent: ({ translationX: x, translationY: y}) => block([
+          nativeEvent: ({ translationX: x, translationY: y }) => block([
             set(this.translationX, x),
             set(this.translationY, y),
-            ])
-          }
+          ])
+        }
         ])}
-        onHandlerStateChange={event([{ nativeEvent: { state: this.gestureState }}])}
+        onHandlerStateChange={event([{ nativeEvent: { state: this.gestureState } }])}
       >
 
-      <Animated.View style={{ flex: 1, backgroundColor: 'seashell', alignItems: 'center', justifyContent: 'center'}}>
+        <Animated.View style={{ flex: 1, backgroundColor: 'seashell', alignItems: 'center', justifyContent: 'center' }}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <Animated.View
+              style={{
+                opacity: 0.9,
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: width / 2,
+                backgroundColor: 'tomato',
+                height: height / 2,
+                borderRadius: 5,
+                zIndex: 100,
+                transform: [
+                  {
+                    perspective: this.perspective,
+                    rotateY: this._y,
+                    rotateX: this._x,
+                  }]
+              }}
+            />
+            <Animated.View
+              style={{
+                opacity: 0.9,
+                position: 'absolute',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: width / 2,
+                backgroundColor: 'dodgerblue',
+                height: height / 2,
+                zIndex: this.translationX,
+                borderRadius: 5,
+                transform: [
+                  {
+                    translateY: 20,
+                    perspective: this.perspective,
+                    rotateY: this._x,
+                    rotateX: this._y,
+                    scale: 1.5,
+                  }]
+              }}
+            />
 
-      <Animated.View
-          style={{
-              opacity: 0.9,
-            justifyContent: 'center',
-            alignItems: 'center',
-            width: width / 2,
-            backgroundColor: 'tomato',
-            height: height / 2,
-            borderRadius: 5,
-            zIndex: 100,
-            transform: [
-              { 
-              perspective: this.perspective,
-              rotateY: this._y,
-              rotateX: this._x,
-            }]
-          }}
-        />
-          <Animated.View
-            style={{
-              opacity: 0.9,
-              position: 'absolute',
-              justifyContent: 'center',
-              alignItems: 'center',
-              width: width / 2,
-              backgroundColor: 'dodgerblue',
-              height: height / 2,
-              zIndex: this.translationX,
-              borderRadius: 5,
-              transform: [
-                {
-                  translateY: 20,
-                  perspective: this.perspective,
-                  rotateY: this._x,
-                  rotateX: this._y,
-                  scale: 1.5,
-                }]
-            }}
-          />
-  
-        <BackButton color="#ddd" onPress={() => this.props.navigation.goBack(null)} />
-        </Animated.View>
-        </PanGestureHandler>
+            </SafeAreaView>
+            <BackButton />
+            </Animated.View>
+      </PanGestureHandler>
     )
   }
 }

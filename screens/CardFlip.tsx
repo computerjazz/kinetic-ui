@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { View, Dimensions, Text, Platform } from 'react-native'
+import { View, Dimensions, Text, Platform, SafeAreaView } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 
@@ -42,7 +42,7 @@ const {
 
 import BackButton from '../components/BackButton'
 
-const size = width / 2 
+const size = width / 2
 const numCards = 7
 const maxIndex = numCards - 1
 const colorMultiplier = 255 / maxIndex
@@ -78,8 +78,8 @@ class Card extends Component {
     this.indexY = floor(divide(add(this._iy, 90), 180))
     this.index = add(this.indexX, this.indexY)
 
-    this.targetX= multiply(size, this.indexX)
-    this.targetY= multiply(size, this.indexY, -1)
+    this.targetX = multiply(size, this.indexX)
+    this.targetY = multiply(size, this.indexY, -1)
 
     this._mx = sub(modulo(add(this._ix, 90), 180), 90)
     this._my = sub(modulo(add(this._iy, 90), 180), 90)
@@ -196,23 +196,20 @@ class Card extends Component {
       cond(isActive, [
         stopClockIfStarted,
       ], [
-            startClockIfStopped,
-            cond(clockRunning(this.clock), [
-              spring(this.clock, this.springState, this.springConfig),
-              set(this.prevX, add(this._px, multiply(this.diffX, this.springState.position))),
-              set(this.prevY, add(this._py, multiply(this.diffY, this.springState.position))),
-            ]),
-            stopClockIfFinished,     
+        startClockIfStopped,
+        cond(clockRunning(this.clock), [
+          spring(this.clock, this.springState, this.springConfig),
+          set(this.prevX, add(this._px, multiply(this.diffX, this.springState.position))),
+          set(this.prevY, add(this._py, multiply(this.diffY, this.springState.position))),
+        ]),
+        stopClockIfFinished,
       ]),
       this.rotateX,
     ])
 
     this._y = this.rotateY
-  }
 
-  render() {
-
-    const runClock = [
+    this.runClock = [
       cond(clockRunning(this.tapClock), [
         spring(this.tapClock, this.tapSpr, this.tapCfg),
         cond(this.tapSpr.finished, [
@@ -226,104 +223,110 @@ class Card extends Component {
       this.tapSpr.position
     ]
 
-    const scale = Animated.interpolate(runClock, {
+    this.scale = Animated.interpolate(this.runClock, {
       inputRange: [0, 0.5, 1],
       outputRange: [1, 1.1, 1],
     })
 
-    const shadowScale = Animated.interpolate(runClock, {
+    this.shadowScale = Animated.interpolate(this.runClock, {
       inputRange: [0, 0.5, 1],
       outputRange: [1, .95, 1],
     })
+  }
+
+  render() {
 
     return (
-      <PanGestureHandler
-        onGestureEvent={event([{
-          nativeEvent: ({ translationX: x, translationY: y }) => block([
-            cond(eq(this.gestureState, State.ACTIVE), [
-              set(this.translationX, x),
-              set(this.translationY, y),
-            ])
-          ])
-        }
-        ])}
-        onHandlerStateChange={event([{ 
-          nativeEvent: ({ state }) => block([
-            cond(and(neq(this.gestureState, State.ACTIVE), eq(state, State.ACTIVE)), [
-              set(this.startIndexY, this.indexY),
-            ]),
-            set(this.gestureState, state),
-          ])
-        }])}
+      <View style={{
+        flex: 1,
+        backgroundColor: 'seashell',
+
+      }}
       >
-
-        <Animated.View style={{ 
-          flex: 1, 
-          backgroundColor: 'seashell', 
-          alignItems: 'center', 
-          justifyContent: 'center' 
-        }}
-        >
-
-        <Animated.View 
-          style={{
-            position: 'absolute',
-            top: height / 2,
-            right: width / 2,
-            width: size * .75, 
-            height: size * .75,
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            borderRadius: 5,
-            zIndex: -999,
-              transform: [
-                {
-                  perspective: this.perspective,
-                  rotateX: this._x,
-                  rotateY: this._y,
-                  scaleX: shadowScale,
-                  scaleY: shadowScale,
-                }]
-          }}
-        />
-        <TapGestureHandler
+        <PanGestureHandler
+          onGestureEvent={event([{
+            nativeEvent: ({ translationX: x, translationY: y }) => block([
+              cond(eq(this.gestureState, State.ACTIVE), [
+                set(this.translationX, x),
+                set(this.translationY, y),
+              ])
+            ])
+          }
+          ])}
           onHandlerStateChange={event([{
             nativeEvent: ({ state }) => block([
-              // debug('state change', this.tapSpr.position),
-
-              cond(and(neq(this.tapState, State.END), eq(state, State.END)), [
-                debug('tarting clock', this.tapSpr.position),
-                startClock(this.tapClock)
+              cond(and(neq(this.gestureState, State.ACTIVE), eq(state, State.ACTIVE)), [
+                set(this.startIndexY, this.indexY),
               ]),
-              set(this.tapState, state)
+              set(this.gestureState, state),
             ])
           }])}
         >
-          <Animated.View
-            style={{
-              opacity: 0.8,
-              justifyContent: 'center',
-              alignItems: 'center',
-              width: size,
-              height: size,
-              backgroundColor: this.color,
-              borderRadius: 5,
-              transform: [
-                {
-                  perspective: this.perspective,
-                  rotateX: this._x,
-                  rotateY: this._y,
-                  scaleX: scale,
-                  scaleY: scale,
-                }]
-            }}
-          >
-          <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white'}}>{}</Text>
-          </Animated.View>
-          </TapGestureHandler>
+          <Animated.View style={{ flex: 1,         
+            alignItems: 'center',
+          justifyContent: 'center' }}>
 
-          <BackButton color="#ddd" onPress={() => this.props.navigation.goBack(null)} />
-        </Animated.View>
-      </PanGestureHandler>
+
+            <Animated.View
+              style={{
+                position: 'absolute',
+                top: height / 2,
+                right: width / 2,
+                width: size * .75,
+                height: size * .75,
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                borderRadius: 5,
+                zIndex: -999,
+                transform: [
+                  {
+                    perspective: this.perspective,
+                    rotateX: this._x,
+                    rotateY: this._y,
+                    scaleX: this.shadowScale,
+                    scaleY: this.shadowScale,
+                  }]
+              }}
+            />
+            <TapGestureHandler
+              onHandlerStateChange={event([{
+                nativeEvent: ({ state }) => block([
+                  // debug('state change', this.tapSpr.position),
+
+                  cond(and(neq(this.tapState, State.END), eq(state, State.END)), [
+                    debug('tarting clock', this.tapSpr.position),
+                    startClock(this.tapClock)
+                  ]),
+                  set(this.tapState, state)
+                ])
+              }])}
+            >
+              <Animated.View
+                style={{
+                  opacity: 0.8,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  width: size,
+                  height: size,
+                  backgroundColor: this.color,
+                  borderRadius: 5,
+                  transform: [
+                    {
+                      perspective: this.perspective,
+                      rotateX: this._x,
+                      rotateY: this._y,
+                      scaleX: this.scale,
+                      scaleY: this.scale,
+                    }]
+                }}
+              >
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white' }}>{}</Text>
+              </Animated.View>
+            </TapGestureHandler>
+
+          </Animated.View>
+        </PanGestureHandler>
+        <BackButton />
+      </View>
     )
   }
 }

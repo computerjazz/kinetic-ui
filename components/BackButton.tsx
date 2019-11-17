@@ -1,22 +1,32 @@
-import React, { Component } from 'react'
-import { TouchableOpacity, Text } from 'react-native'
+import React from 'react'
+import { TouchableOpacity, Text, SafeAreaView, View } from 'react-native'
+import { withNavigation } from 'react-navigation'
 
-class BackButton extends Component {
-  render() {
-    return (
-      <TouchableOpacity style={{ 
-        position: 'absolute', 
-        top: 0, 
-        left: 0, 
-        width: 50, 
-        height: 50, 
-        alignItems: 'center',
-        justifyContent: 'center',
-      }} onPress={this.props.onPress}>
-        <Text style={{ fontSize: 30, fontWeight: 'bold', color: this.props.color || '#ddd' }}>←</Text>
-      </TouchableOpacity>
-    )
-  }
+type Props = {
+  color?: string,
 }
 
-export default BackButton
+const BackButton = ({ color, navigation }: Props) => {
+  return (
+      <SafeAreaView 
+        style={{ position: 'absolute' }}
+        >
+          <TouchableOpacity
+            style={{ padding: 20 }}
+            onPress={() => navigation.goBack(null)}
+          >
+            <Text 
+              style={{ 
+                fontSize: 30, 
+                fontWeight: 'bold', 
+                color: color || '#ddd' 
+              }}
+            >
+            ←
+            </Text>
+          </TouchableOpacity>
+      </SafeAreaView>
+  )
+}
+
+export default withNavigation(BackButton)

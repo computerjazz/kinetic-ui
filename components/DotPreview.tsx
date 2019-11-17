@@ -236,25 +236,6 @@ class Dot extends Component {
     )
   }
 
-  renderDropZone = () => {
-    return (
-      <Animated.View
-        style={{
-          position: 'absolute',
-          width: this.dropZoneRadius,
-          height: this.dropZoneRadius,
-          borderRadius: this.dropZoneRadius,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: 5,
-          borderStyle: 'dotted',
-          backgroundColor: 'seashell',
-          borderColor: '#ccc',
-        }}
-      />
-    )
-  }
-
   render() {
     const { width, height } = this.props
     return (
@@ -276,7 +257,6 @@ class Dot extends Component {
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-        {this.renderDropZone()}
         {this.dots.map(this.renderDot)}
         </Animated.View>
         </Animated.View>

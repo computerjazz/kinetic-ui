@@ -6,7 +6,7 @@ import { createFluidNavigator } from 'react-navigation-fluid-transitions'
 import Flower from './screens/Flower'
 import Lanterns from './screens/Lanterns'
 import Menu from './screens/Menu'
-import Dot from './screens/Dot'
+import Dots from './screens/Dots'
 import CardRotate from './screens/CardRotate'
 import CardFlip from './screens/CardFlip'
 import CardStack from './screens/CardStack'
@@ -19,7 +19,7 @@ const Stack = createStackNavigator({
   Flower: { screen: Flower },
   Menu: { screen: Menu },
   Lanterns: { screen: Lanterns },
-  Dot: { screen: Dot },
+  Dots: { screen: Dots },
   Card: { screen: CardRotate },
   Stack: { screen: CardStack },
   Carousel: { screen: Carousel },

@@ -1,43 +1,28 @@
 import * as React from 'react'
 import { Dimensions, View, StyleSheet, Text } from 'react-native'
-import Animated, { Easing } from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import BackButton from '../components/BackButton'
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
-const { height, width } = Dimensions.get('window')
+const { width } = Dimensions.get('window')
 
 const {
-  onChange,
-  debug,
   and,
-  not,
   set,
   neq,
   cond,
   eq,
-  or,
   add,
   multiply,
-  greaterThan,
-  lessThan,
-  floor,
   spring,
-  timing,
-  divide,
   block,
-  round,
   startClock,
   stopClock,
   clockRunning,
   sub,
-  defined,
   Value,
   Clock,
   event,
-  sin,
-  modulo,
   abs,
-  cos,
-  max,
   min,
 } = Animated;
 

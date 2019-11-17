@@ -1,15 +1,13 @@
-import * as React from 'react'
+import React from 'react'
 import { Dimensions, View, StyleSheet, Text, SafeAreaView } from 'react-native'
-import Animated, { Easing } from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import { PanGestureHandler, State } from 'react-native-gesture-handler'
 
 import BackButton from '../components/BackButton'
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window")
+const { width: screenWidth } = Dimensions.get("window")
 
 const {
-  onChange,
-  debug,
   and,
   not,
   set,
@@ -23,7 +21,6 @@ const {
   lessThan,
   floor,
   spring,
-  timing,
   divide,
   block,
   round,
@@ -31,16 +28,11 @@ const {
   stopClock,
   clockRunning,
   sub,
-  defined,
   Value,
   Clock,
   event,
-  sin,
-  modulo,
   abs,
-  cos,
   color,
-  min,
   max,
 } = Animated;
 
@@ -48,6 +40,7 @@ const numCards = 7
 const rampDist = 100
 
 class Book extends React.Component {
+
   _mounted: Animated.Value<number>
   perspective: Animated.Value<number>
   rawTrans: Animated.Value<number>
@@ -56,6 +49,17 @@ class Book extends React.Component {
   absPan: Animated.Value<number>
   panPct: Animated.Adaptable<number>
   transX: Animated.Adaptable<number>
+  clock: Animated.Clock
+  sprState: Animated.SpringState
+  sprConfig: Animated.SpringConfig
+  centerClock: Animated.Clock
+  centerSprState: Animated.SpringState
+  centerSprConfig: Animated.SpringConfig
+  cumulativeTrans: Animated.Node<number>
+  cardPanWidth: number
+  currentIndex: Animated.Node<number>
+  panIndex: Animated.Value<number>
+  cards
   
 
   constructor(props) {

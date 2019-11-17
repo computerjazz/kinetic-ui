@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { Text, View, TouchableOpacity, StyleSheet, Dimensions, ScrollView } from 'react-native'
+import { Text, View, TouchableOpacity, Dimensions, ScrollView, SafeAreaView } from 'react-native'
 import StackPreview from '../components/StackPreview'
 import CarouselPreview from '../components/CarouselPreview'
 import FlipPreview from '../components/FlipPreview'
@@ -7,7 +7,6 @@ import DeckPreview from '../components/DeckPreview'
 import GridPreview from '../components/GridPreview'
 import BookPreview from '../components/BookPreview'
 import DotPreview from '../components/DotPreview'
-import { Transition } from 'react-navigation-fluid-transitions'
 
 const { width, height } = Dimensions.get('window')
 import Animated from 'react-native-reanimated'
@@ -56,13 +55,6 @@ class Menu extends Component {
   clock = new Clock()
   focused = new Value(0)
 
-  componentDidMount() {
-
-    this.didFocusSub = this.props.navigation.addListener('didFocus', () => {
-      // setTimeout(() => this.focused.setValue(1), 1000)
-    })
-  }
-
   renderOption = ({title, screen, Preview }) => (
     <TouchableOpacity 
     key={`menu-option-${title}`} 
@@ -98,12 +90,14 @@ class Menu extends Component {
   render() {
     return (
       <View style={{
-        flex: 1, backgroundColor: '#555' }}>
+        flex: 1, backgroundColor: '#888' }}
+      >
       <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           alignItems: 'center',
-          marginTop: 20,
-          paddingBottom: 20,
+          marginTop: 40,
+          paddingBottom: 50,
         }}
       >
       {screens.map(this.renderOption)}

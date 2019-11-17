@@ -259,19 +259,23 @@ class Book extends React.Component {
       ])
     }])
 
+    const layFlat = [
+      set(this.centerSprConfig.toValue, add(
+        multiply(floor(this.currentIndex), this.cardPanWidth),
+        this.cardPanWidth / 2,
+      ),
+      ),
+      set(this.prevTrans, add(this.prevTrans, this.transX)),
+      set(this.rawTrans, 0),
+      set(this.absPan, 0),
+      startClock(this.centerClock),
+      startClock(this.clock)
+    ]
+
     this.onHandlerStateChange = event([{
       nativeEvent: ({ state }) => block([
         cond(and(eq(this.gestureState, State.ACTIVE), neq(state, State.ACTIVE)), [
-          set(this.centerSprConfig.toValue, add(
-            multiply(floor(this.currentIndex), this.cardPanWidth),
-            this.cardPanWidth / 2,
-          ),
-          ),
-          set(this.prevTrans, add(this.prevTrans, this.transX)),
-          set(this.rawTrans, 0),
-          set(this.absPan, 0),
-          startClock(this.centerClock),
-          startClock(this.clock)
+          layFlat
         ]),
         set(this.gestureState, state),
 
@@ -286,28 +290,36 @@ class Book extends React.Component {
         onChange(tapState, [
           cond(eq(tapState, State.END), [
             debug('val', add(this.currentIndex, cond(greaterThan(x, screenWidth / 2), -1, 1))),
-            resetClock,
-            resetCenterClock,
 
-            set(this.sprState.position, 0),
-            set(this.centerSprConfig.toValue,
-              multiply(
-                this.cardPanWidth,
-                minMax(
-                  add(this.currentIndex, cond(greaterThan(x, screenWidth / 2), -1, 1)),
-                  -0.5,
-                  numCards - 0.5,
+            // Tap in center of screen
+            cond(and(
+              greaterThan(x, screenWidth * .4),
+              lessThan(x, screenWidth * .6),
+            ), 
+              layFlat, 
+            [
+              // Tap on sides of screen
+              resetClock,
+              resetCenterClock,
+  
+              set(this.sprState.position, 0),
+              set(this.centerSprConfig.toValue,
+                multiply(
+                  this.cardPanWidth,
+                  minMax(
+                    add(this.currentIndex, cond(greaterThan(x, screenWidth / 2), -1, 1)),
+                    -0.5,
+                    numCards - 0.5,
+                  ),
                 ),
               ),
-            ),
-            startClock(this.centerClock)
+              startClock(this.centerClock)
+            ]) 
 
           ])
         ])
       ])
     }])
-
-
   }
 
   componentDidMount() {

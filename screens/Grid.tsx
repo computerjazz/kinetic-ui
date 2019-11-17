@@ -1,8 +1,8 @@
 import React from 'react'
-import { Dimensions, View, SafeAreaView, Text } from 'react-native'
+import { Dimensions, View, SafeAreaView, StyleSheet } from 'react-native'
 import Animated from 'react-native-reanimated'
 import BackButton from '../components/BackButton'
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import { PanGestureHandler, State, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import { Procs } from '../procs/grid';
 const { width } = Dimensions.get('window')
 
@@ -44,6 +44,13 @@ type Props = {
 
 }
 
+type Card = {
+  color: string
+  rotateX: Animated.Node<number>
+  rotateY: Animated.Node<number>
+  scale: Animated.Node<number>
+}
+
 class Grid extends React.Component<Props> {
 
   mountTimer = Date.now()
@@ -58,6 +65,9 @@ class Grid extends React.Component<Props> {
   sprState: Animated.SpringState
   sprConfig: Animated.SpringConfig
   panRatio: Animated.Node<number>
+  cards: Card[]
+  onGestureEvent: (event: PanGestureHandlerGestureEvent) => void
+  onHandlerStateChange: (event: PanGestureHandlerGestureEvent) => void
 
   constructor(props) {
     super(props)
@@ -133,17 +143,54 @@ class Grid extends React.Component<Props> {
         scale: Procs.scale(pctX, pctY, multiplier)
       }
     })
+
+    this.onGestureEvent = event([{
+      nativeEvent: ({ translationX, translationY, x, y }) => block([
+        cond(eq(this.gestureState, State.ACTIVE), [
+          cond(clockRunning(this.clock), [
+            stopClock(this.clock),
+            set(this.sprState.finished, 0),
+            set(this.sprState.velocity, 0),
+            set(this.sprState.time, 0),
+            set(this.sprState.position, 0),
+          ]),
+          set(this.pan,
+            add(
+              this.pan,
+              abs(sub(this.translationX, translationX)),
+              abs(sub(this.translationY, translationY)),
+            )
+          ),
+          set(this.translationX, translationX),
+          set(this.translationY, translationY),
+          set(this.screenX, x),
+          set(this.screenY, y),
+        ])
+      ])
+    }])
+
+    this.onHandlerStateChange = event([{
+      nativeEvent: ({ state }) => block([
+        cond(and(neq(state, State.ACTIVE), eq(this.gestureState, State.ACTIVE)), [
+          set(this.sprState.position, this.panRatio),
+          set(this.pan, 0),
+          set(this.translationX, 0),
+          set(this.translationY, 0),
+          startClock(this.clock),
+        ]),
+        set(this.gestureState, state)
+      ])
+    }])
   }
 
   componentDidMount = () => {
-    console.log(`ttmount -- ${Date.now() - this.mountTimer}`)
+    console.log(`tt-mount -- ${Date.now() - this.mountTimer}`)
   }
 
   renderCard = ({ color, rotateX, rotateY, scale }, index) => {
     return (
-      <Animated.View
+      <View
         key={`grid-card-${index}`}
-
         style={{
           width: cardSize,
           height: cardSize,
@@ -161,68 +208,21 @@ class Grid extends React.Component<Props> {
               scaleY: scale,
             }]
           }}
-        >
-          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>{}</Text>
-        </Animated.View>
-
-      </Animated.View>
+        />
+      </View>
     )
   }
 
   render() {
     return (
-      <View style={{
-        flex: 1,
-        backgroundColor: 'seashell',
-      }}>
-        <SafeAreaView style={{ flex: 1 }}>
-          <View style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
+      <View style={styles.container}>
+        <SafeAreaView style={styles.flex}>
+          <View style={styles.center}>
             <PanGestureHandler
-              onGestureEvent={event([{
-                nativeEvent: ({ translationX, translationY, x, y, state }) => block([
-                  cond(eq(this.gestureState, State.ACTIVE), [
-                    cond(clockRunning(this.clock), [
-                      stopClock(this.clock),
-                      set(this.sprState.finished, 0),
-                      set(this.sprState.velocity, 0),
-                      set(this.sprState.time, 0),
-                      set(this.sprState.position, 0),
-                    ]),
-                    set(this.pan,
-                      add(
-                        this.pan,
-                        abs(sub(this.translationX, translationX)),
-                        abs(sub(this.translationY, translationY)),
-                      )
-                    ),
-                    set(this.translationX, translationX),
-                    set(this.translationY, translationY),
-                    set(this.screenX, x),
-                    set(this.screenY, y),
-                  ])
-                ])
-              }])}
-              onHandlerStateChange={event([{
-                nativeEvent: ({ state }) => block([
-                  cond(and(neq(state, State.ACTIVE), eq(this.gestureState, State.ACTIVE)), [
-                    set(this.sprState.position, this.panRatio),
-                    set(this.pan, 0),
-                    set(this.translationX, 0),
-                    set(this.translationY, 0),
-                    startClock(this.clock),
-                  ]),
-                  set(this.gestureState, state)
-                ])
-              }])}
+              onGestureEvent={this.onGestureEvent}
+              onHandlerStateChange={this.onHandlerStateChange}
             >
-              <Animated.View style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-              }}>
+              <Animated.View style={styles.cardContainer}>
                 {this.cards.map(this.renderCard)}
               </Animated.View>
             </PanGestureHandler>
@@ -235,3 +235,22 @@ class Grid extends React.Component<Props> {
 }
 
 export default Grid
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'seashell',
+  },
+  flex: {
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  }
+})

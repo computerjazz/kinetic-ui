@@ -99,7 +99,7 @@ class Book extends React.Component {
     this.sprConfig = {
       damping: 8,
       mass: 1,
-      stiffness: 50.296,
+      stiffness: new Value(50.296),
       overshootClamping: false,
       toValue: new Value(1),
       restSpeedThreshold: 0.001,
@@ -117,7 +117,7 @@ class Book extends React.Component {
     this.centerSprConfig = {
       damping: 8,
       mass: 1,
-      stiffness: 50.296,
+      stiffness: new Value(50.296),
       overshootClamping: false,
       toValue: new Value(1),
       restSpeedThreshold: 0.001,
@@ -268,6 +268,7 @@ class Book extends React.Component {
       set(this.prevTrans, add(this.prevTrans, this.transX)),
       set(this.rawTrans, 0),
       set(this.absPan, 0),
+      set(this.sprConfig.toValue, 1),
       startClock(this.centerClock),
       startClock(this.clock)
     ]
@@ -289,7 +290,6 @@ class Book extends React.Component {
         set(tapState, state),
         onChange(tapState, [
           cond(eq(tapState, State.END), [
-            debug('val', add(this.currentIndex, cond(greaterThan(x, screenWidth / 2), -1, 1))),
 
             // Tap in center of screen
             cond(and(
@@ -301,8 +301,10 @@ class Book extends React.Component {
               // Tap on sides of screen
               resetClock,
               resetCenterClock,
-  
-              set(this.sprState.position, 0),
+              
+              set(this.sprConfig.toValue, 0),
+              startClock(this.clock),
+
               set(this.centerSprConfig.toValue,
                 multiply(
                   this.cardPanWidth,

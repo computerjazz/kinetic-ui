@@ -1,11 +1,12 @@
 import React, { Component } from 'react'
 import { View, Dimensions, Text } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
-import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
+import { PanGestureHandler, State, TapGestureHandler, TapGestureHandlerStateChangeEvent, PanGestureHandlerStateChangeEvent, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 
 const { width, height } = Dimensions.get('window');
 
 const {
+  debug,
   onChange,
   and,
   not,
@@ -38,7 +39,7 @@ import BackButton from '../components/BackButton'
 
 interface Props {
   navigation: any
-} 
+}
 
 class CardStack extends Component<Props> {
   state = {}
@@ -48,7 +49,8 @@ class CardStack extends Component<Props> {
   prevTrans: Animated.Value<number>
   cumulativeTrans: Animated.Value<number>
   perspective: Animated.Value<number>
-  gestureState: Animated.Value<State>
+  panGestureState: Animated.Value<State>
+  tapGestureState: Animated.Value<State>
   activeCardIndex: Animated.Value<number>
   clock: Animated.Clock
   altClock: Animated.Clock
@@ -59,14 +61,20 @@ class CardStack extends Component<Props> {
   altState: Animated.SpringState
   altConfig: Animated.SpringConfig
 
-  constructor() {
-    super()
+  onTapStateChange: (e: TapGestureHandlerStateChangeEvent) => void
+  onPanStateChange: (e: PanGestureHandlerStateChangeEvent) => void
+  onPanGestureEvent: (e: PanGestureHandlerGestureEvent) => void
+  cards
+
+  constructor(props) {
+    super(props)
     this.mainHandler = React.createRef()
 
     this.translationX = new Value(0)
     this.prevTrans = new Value(0)
     this.cumulativeTrans = new Value(0)
-    this.gestureState = new Value(State.UNDETERMINED)
+    this.panGestureState = new Value(State.UNDETERMINED)
+    this.tapGestureState = new Value(State.UNDETERMINED)
     this.perspective = new Value(850)
     this.activeCardIndex = new Value(0)
     this.perspective = new Value(850)
@@ -228,7 +236,80 @@ class CardStack extends Component<Props> {
         cardGestureState,
       }
     })
+
+    this.onTapStateChange = event([
+      {
+        nativeEvent: ({ state }) => block([
+          set(this.tapGestureState, state),
+          onChange(this.tapGestureState, [
+            cond(eq(this.tapGestureState, State.BEGAN), [
+              set(this.velocity, 0),
+              cond(clockRunning(this.clock), [
+                set(this.altState.position, this._temp),
+                startClock(this.altClock),
+                stopClock(this.clock),
+                set(this.prevTrans, add(this.prevTrans, this.animState.position)),
+                set(this.animState.position, 0),
+                set(this.animState.time, 0),
+                set(this.animState.frameTime, 0),
+                set(this.animState.finished, 0)
+              ])
+            ])
+          ])
+        ])
+      }
+    ])
+
+    this.onPanGestureEvent = event([{
+      nativeEvent: ({ translationX: x, velocityX }) => block([
+        cond(eq(this.panGestureState, State.ACTIVE), [
+          set(this.translationX, x),
+          set(this.velocity, velocityX),
+        ])
+      ])
+    }])
+
+    this.onPanStateChange = event([{
+      nativeEvent: ({ state }) => block([
+        set(this.panGestureState, state),
+        onChange(this.panGestureState, [
+          cond(eq(this.panGestureState, State.ACTIVE), [
+            cond(clockRunning(this.clock), [
+              stopClock(this.clock),
+              set(this.animState.time, 0),
+              set(this.animState.position, 0),
+              set(this.animState.frameTime, 0),
+              set(this.animState.finished, 0)
+            ]),
+          ]),
+
+          cond(eq(this.panGestureState, State.END),
+            [
+              set(this.prevTrans, add(this.translationX, this.prevTrans)),
+              set(this.translationX, 0),
+              cond(clockRunning(this.clock), [
+                stopClock(this.clock),
+                set(this.animState.time, 0),
+                set(this.animState.position, 0),
+                set(this.animState.frameTime, 0),
+                set(this.animState.finished, 0)
+              ]),
+              cond(greaterThan(abs(this.velocity), 0), [
+                set(this.animConfig.toValue, this.velocity),
+                set(this.animConfig.duration, 5000),
+                set(this.animState.time, 0),
+                set(this.animState.position, 0),
+                set(this.animState.frameTime, 0),
+                set(this.animState.finished, 0),
+                startClock(this.clock),
+              ]),
+            ]),
+        ]),
+      ])
+    }]
+    )
   }
+
 
 
   renderCard = ({ handlerRef, cardTransY, cardClock, cardState, cardConfig, cardGestureState, color, scale, translateX, translateY, zIndex, rotateY, rotateX, size, perspective }, i) => {
@@ -337,76 +418,13 @@ class CardStack extends Component<Props> {
         backgroundColor: 'seashell',
       }}>
         <TapGestureHandler
-          onHandlerStateChange={event([
-            {
-              nativeEvent: ({ state }) => block([
-                cond(eq(state, State.BEGAN), [
-                  cond(clockRunning(this.clock), [
-                    set(this.altState.position, this._temp),
-                    startClock(this.altClock),
-                    stopClock(this.clock),
-                    set(this.prevTrans, add(this.prevTrans, this.animState.position)),
-                    set(this.animState.position, 0),
-                    set(this.animState.time, 0),
-                    set(this.animState.frameTime, 0),
-                    set(this.animState.finished, 0)
-                  ])
-
-                ])
-              ])
-            }
-          ])}
+          onHandlerStateChange={this.onTapStateChange}
         >
           <Animated.View style={{ flex: 1 }}>
             <PanGestureHandler
               ref={this.mainHandler}
-              onGestureEvent={event([{
-                nativeEvent: ({ translationX: x, velocityX, state }) => block([
-                  cond(eq(this.gestureState, State.ACTIVE), [
-                    set(this.translationX, x),
-                    set(this.velocity, velocityX),
-                  ])
-                ])
-              }])}
-              onHandlerStateChange={event([{
-                nativeEvent: ({ state }) => block([
-                  set(this.gestureState, state),
-                  onChange(this.gestureState, [
-                    cond(eq(this.gestureState, State.ACTIVE), [
-                      cond(clockRunning(this.clock), [
-                        stopClock(this.clock),
-                        set(this.animState.time, 0),
-                        set(this.animState.position, 0),
-                        set(this.animState.frameTime, 0),
-                        set(this.animState.finished, 0)
-                      ]),
-                    ]),
-
-                    cond(eq(this.gestureState, State.END),
-                      [
-                        set(this.prevTrans, add(this.translationX, this.prevTrans)),
-                        set(this.translationX, 0),
-                        cond(clockRunning(this.clock), [
-                          stopClock(this.clock),
-                          set(this.animState.time, 0),
-                          set(this.animState.position, 0),
-                          set(this.animState.frameTime, 0),
-                          set(this.animState.finished, 0)
-                        ]),
-                        cond(greaterThan(abs(this.velocity), 0), [
-                          set(this.animConfig.toValue, this.velocity),
-                          set(this.animConfig.duration, 5000),
-                          set(this.animState.time, 0),
-                          set(this.animState.position, 0),
-                          set(this.animState.frameTime, 0),
-                          set(this.animState.finished, 0),
-                          startClock(this.clock),
-                        ]),
-                      ]),
-                  ]),
-                ])
-              }]
-              )}
+              onGestureEvent={this.onPanGestureEvent}
+              onHandlerStateChange={this.onPanStateChange}
             >
               <Animated.View style={{
                 flex: 1,

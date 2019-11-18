@@ -1,7 +1,12 @@
 import * as React from 'react'
 import { Text, View, StyleSheet } from 'react-native'
 
-class MenuTitle extends React.Component {
+
+type Props = {
+  color?: string,
+  text: string,
+}
+class MenuTitle extends React.Component<Props> {
   render() {
     return (
       <View style={{

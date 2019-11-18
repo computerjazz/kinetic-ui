@@ -62,17 +62,17 @@ class StackPreview extends React.Component {
           startClock(clock),
         ])
       ], [
-          startClock(clock),
-        ]),
+        startClock(clock),
+      ]),
       previewState.position
     ]
 
     this._tempOffset = new Value(0)
     this.cumulativeTrans = add(
-      this.prevTrans, 
+      this.prevTrans,
       this.translationY,
       cond(focused, runClock, 0) // NOTE: was causing janky transitions
-      )
+    )
 
 
 
@@ -99,9 +99,9 @@ class StackPreview extends React.Component {
       const indexToTrans = sub(Animated.interpolate([
         transToIndex,
       ], {
-          inputRange: [0, 0.5, 0.75, 1, arr.length],
-          outputRange: [0, size, size * 1.9, size * 1.25, 0],
-        }), 60)
+        inputRange: [0, 0.5, 0.75, 1, arr.length],
+        outputRange: [0, size, size * 1.9, size * 1.25, 0],
+      }), 60)
 
       const translateY = indexToTrans
 
@@ -203,8 +203,6 @@ class StackPreview extends React.Component {
       }}>
 
         {this.cards.map(this.renderCard)}
-
-        <MenuTitle text="STACK" />
       </View>
     )
   }

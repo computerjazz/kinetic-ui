@@ -65,15 +65,15 @@ class Deck extends Component {
       time: new Value(0),
     }
 
-      this.sprConfig = {
-        damping: 20,
-        mass: 0.3,
-        stiffness: 30,
-        overshootClamping: false,
-        toValue: new Value(0),
-        restSpeedThreshold: 0.001,
-        restDisplacementThreshold: 0.001,
-      }
+    this.sprConfig = {
+      damping: 20,
+      mass: 0.3,
+      stiffness: 30,
+      overshootClamping: false,
+      toValue: new Value(0),
+      restSpeedThreshold: 0.001,
+      restDisplacementThreshold: 0.001,
+    }
 
     this.cumulativeTrans = new Value(height / 2)
     const ry = Animated.interpolate(this.cumulativeTrans, {
@@ -103,18 +103,18 @@ class Deck extends Component {
       const ratio = distFromMid / midpoint
       const multiplier = ratio
       const maxY = multiplier * (height / 5)
-      const scaleMultiplier = 1- (i * (1 / arr.length))
+      const scaleMultiplier = 1 - (i * (1 / arr.length))
 
 
       const iy = Animated.interpolate(ry, {
-        inputRange: [-0.5 ,0, 0.5],
-        outputRange: [-maxY, i*5, maxY],
+        inputRange: [-0.5, 0, 0.5],
+        outputRange: [-maxY, i * 5, maxY],
       })
 
       const xOffset = width / 4
       const ix = multiply(
         abs(add(multiply(ry, cos(ratio), -xOffset), multiply(ry, xOffset))),
-      -1)
+        -1)
 
       const rotateZ = Animated.interpolate(ry, {
         inputRange: [0, 1],
@@ -125,7 +125,7 @@ class Deck extends Component {
         inputRange: [-0.5, 0, 0.5],
         outputRange: [1, 1 + scaleMultiplier * 0.1, 1],
       })
-    
+
       const colorIndex = i
       return {
         color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
@@ -145,7 +145,7 @@ class Deck extends Component {
           time: new Value(0),
           frameTime: new Value(0),
         },
-        config: {      
+        config: {
           toValue: new Value(1),
           duration: 250,
           easing: Easing.inOut(Easing.ease),
@@ -155,16 +155,16 @@ class Deck extends Component {
   }
 
 
-  renderCard = ({ 
-    color, 
-    scale, 
-    translateY, 
-    translateX, 
-    zIndex, 
-    size, 
-    rotateZ, 
-    gestureState, 
-    index, 
+  renderCard = ({
+    color,
+    scale,
+    translateY,
+    translateX,
+    zIndex,
+    size,
+    rotateZ,
+    gestureState,
+    index,
     clock,
     state,
     config,
@@ -213,21 +213,21 @@ class Deck extends Component {
           }]
         }}
       >
-          <Animated.View style={{ 
-            flex: 1, 
-            width: size, 
-            alignItems: 'flex-end', 
-            justifyContent: 'flex-end', 
-            padding: 10 
+        <Animated.View style={{
+          flex: 1,
+          width: size,
+          alignItems: 'flex-end',
+          justifyContent: 'flex-end',
+          padding: 10
+        }}>
+          <Text style={{
+            color: 'seashell',
+            fontSize: 30,
+            fontWeight: 'bold',
           }}>
-            <Text style={{
-              color: 'seashell',
-              fontSize: 30,
-              fontWeight: 'bold',
-            }}>
-              {}
-            </Text>
-          </Animated.View>
+            {}
+          </Text>
+        </Animated.View>
       </Animated.View>
     )
   }
@@ -245,15 +245,13 @@ class Deck extends Component {
         backgroundColor: 'seashell',
         borderRadius: this.props.width,
       }}>
-          <Animated.View style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            {this.cards.map(this.renderCard)}
-          </Animated.View>
-
-        <MenuTitle text="DECK" />
+        <Animated.View style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          {this.cards.map(this.renderCard)}
+        </Animated.View>
       </View>
 
     )

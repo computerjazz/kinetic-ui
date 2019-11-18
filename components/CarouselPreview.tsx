@@ -10,7 +10,7 @@ const {
   sub,
   multiply,
   diff,
-  min, 
+  min,
   abs,
   set,
   sin,
@@ -100,17 +100,17 @@ class CarouselPreview extends React.Component {
           startClock(clock),
         ])
       ], [
-          startClock(clock),
-        ]),
+        startClock(clock),
+      ]),
       previewState.position
     ]
     const cumulativeTrans = add(
-      this.prevTrans, 
-      this.translationX, 
+      this.prevTrans,
+      this.translationX,
       cond(focused, runClock, 0)
 
-      ) 
-      
+    )
+
 
     this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
       const colorMultiplier = 255 / maxIndex
@@ -199,7 +199,7 @@ class CarouselPreview extends React.Component {
 
     return (
 
-        <Animated.View 
+      <Animated.View
         key={`carousel-preview-card-${i}`}
         style={{
           zIndex,
@@ -215,27 +215,27 @@ class CarouselPreview extends React.Component {
             scaleY: scale,
           }]
         }}>
-          <Animated.View
-            style={{
-              position: 'absolute',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: size / 3.5,
-              height: size,
-              backgroundColor: color,
-              borderRadius: 10,
-              zIndex,
-              transform: [{
-                perspective,
-                translateY: add(translateY, cardTransY),
-                rotateY,
-                rotateX,
-              }]
-            }}
-          >
-            <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>{}</Text>
-          </Animated.View>
+        <Animated.View
+          style={{
+            position: 'absolute',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: size / 3.5,
+            height: size,
+            backgroundColor: color,
+            borderRadius: 10,
+            zIndex,
+            transform: [{
+              perspective,
+              translateY: add(translateY, cardTransY),
+              rotateY,
+              rotateX,
+            }]
+          }}
+        >
+          <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>{}</Text>
         </Animated.View>
+      </Animated.View>
     )
   }
 
@@ -252,15 +252,10 @@ class CarouselPreview extends React.Component {
         backgroundColor: 'seashell',
         borderRadius: this.props.width,
       }}>
-
-
-
         {this.cards.map(this.renderCard)}
-
-      <MenuTitle text="CAROUSEL" />
       </View>
-          )
-        }
-      }
-      
+    )
+  }
+}
+
 export default CarouselPreview

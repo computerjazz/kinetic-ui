@@ -12,6 +12,7 @@ import DotPreview from '../components/DotPreview'
 
 const { width } = Dimensions.get('window')
 import Animated from 'react-native-reanimated'
+import MenuTitle from '../components/MenuTitle';
 const { Clock, Value } = Animated
 
 const screens = [
@@ -38,6 +39,7 @@ const screens = [
   {
     title: "Dots",
     screen: "Dots",
+    titleColor: "#999",
     Preview: DotPreview,
   },
   {
@@ -57,8 +59,8 @@ class Menu extends Component {
   clock = new Clock()
   focused = new Value(0)
 
-  renderOption = ({ title, screen, Preview }) => (
-    <TouchableOpacity
+  renderOption = ({ title, screen, Preview, titleColor}) => (
+    <View
       key={`menu-option-${title}`}
       style={{
         margin: 20,
@@ -68,26 +70,9 @@ class Menu extends Component {
         height: width / 2,
         overflow: 'hidden',
         borderRadius: width / 2,
-      }} onPress={() => {
-        this.focused.setValue(0)
-        this.props.navigation.navigate(screen)
-      }}>
-      {!!Preview ?
-        <Preview title={title} focused={this.focused} clock={this.clock} width={width / 2} height={width / 2} />
-        : (
-          <View
-            style={{
-              flex: 1,
-              width: '100%',
-              backgroundColor: 'seashell',
-              borderRadius: width / 2,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text style={{ color: '#555', fontSize: 24, fontWeight: 'bold' }}>{title}</Text>
-          </View>
-        )}
+      }} 
+      >
+      <Preview title={""} focused={this.focused} clock={this.clock} width={width / 2} height={width / 2} />
       <View style={{
         ...StyleSheet.absoluteFillObject,
       }}>
@@ -101,7 +86,22 @@ class Menu extends Component {
           colors={['transparent', 'black']}
         />
       </View>
-    </TouchableOpacity>
+      <TouchableOpacity
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(0,0,0, .1)'
+        }}
+        onPress={() => {
+          this.focused.setValue(0)
+          this.props.navigation.navigate(screen)
+        }}
+      >
+        <MenuTitle text={title.toUpperCase()} color={titleColor || 'seashell'} />
+
+      </TouchableOpacity>
+    </View>
   )
 
   render() {

@@ -174,8 +174,6 @@ class Book extends React.Component {
               {this.cards.map(this.renderCard)}
             </Animated.View>
           </Animated.View>
-        <MenuTitle text="BOOK" />
-
       </View>
     )
   }

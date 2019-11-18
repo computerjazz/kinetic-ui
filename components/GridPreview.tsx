@@ -59,7 +59,7 @@ class GridPreview extends React.Component {
 
     this.pan = new Value(0)
     this.gestureState = new Value(State.UNDETERMINED),
-    this.translationX = new Value(0)
+      this.translationX = new Value(0)
     this.translationY = new Value(0)
     this.screenX = new Value(0)
     this.screenY = new Value(0)
@@ -91,14 +91,14 @@ class GridPreview extends React.Component {
 
   renderCard = ({ color, rotateX, rotateY, scale, size, padding }, index) => {
     return (
-      <Animated.View 
+      <Animated.View
         key={`grid-card-${index}`}
 
-      style={{
-        width: size,
-        height: size,
-        padding,
-      }}>
+        style={{
+          width: size,
+          height: size,
+          padding,
+        }}>
         <Animated.View
           style={{
             flex: 1,
@@ -112,7 +112,7 @@ class GridPreview extends React.Component {
             }]
           }}
         >
-        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14}}>{}</Text>
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>{}</Text>
         </Animated.View>
 
       </Animated.View>
@@ -132,14 +132,13 @@ class GridPreview extends React.Component {
         overflow: 'hidden',
 
       }}>
-      <Animated.View style={{
+        <Animated.View style={{
           flexDirection: 'row',
           flexWrap: 'wrap',
           width: width,
-      }}>
-        {this.cards.map(this.renderCard)}
+        }}>
+          {this.cards.map(this.renderCard)}
         </Animated.View>
-      <MenuTitle text="GRID" />
       </View>
     )
   }

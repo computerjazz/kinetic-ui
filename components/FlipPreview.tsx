@@ -68,17 +68,17 @@ class FlipPreview extends React.Component {
           startClock(clock),
         ])
       ], [
-          startClock(clock),
-        ]),
+        startClock(clock),
+      ]),
       previewState.position
     ]
 
     this._cy = add(this.prevY, this.translationY)
     this._cx = add(
-      this.prevX, 
-      this.translationX, 
+      this.prevX,
+      this.translationX,
       cond(focused, runClock, 0)
-      )
+    )
 
     this._iy = Animated.interpolate(this._cy, {
       inputRange: [-size, 0, size],
@@ -229,7 +229,6 @@ class FlipPreview extends React.Component {
               }]
           }}
         />
-        <MenuTitle text="FLIP" />
       </View>
     )
   }

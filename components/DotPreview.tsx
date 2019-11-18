@@ -260,8 +260,6 @@ class Dot extends Component {
         {this.dots.map(this.renderDot)}
         </Animated.View>
         </Animated.View>
-        <MenuTitle text="DOTS" color="#999" />
-
       </Animated.View>
     )
   }

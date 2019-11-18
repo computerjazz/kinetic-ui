@@ -82,6 +82,8 @@ class Menu extends Component<Props> {
         height: width / 2,
         overflow: 'hidden',
         borderRadius: width / 2,
+        borderColor: '#ddd',
+        borderWidth: 4,
       }} 
       >
       <Preview title={""} focused={this.focused} clock={this.clock} width={width / 2} height={width / 2} />

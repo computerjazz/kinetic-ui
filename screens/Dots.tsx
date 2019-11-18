@@ -413,104 +413,109 @@ class Dots extends Component {
     ]
 
     return (
-      <PanGestureHandler
-        key={`dot-${i}`}
-        onGestureEvent={event([{
-          nativeEvent: ({ translationX, translationY }) => block([
-            cond(eq(panGestureState, State.ACTIVE), [
-              // Dot entering center
-              cond(
-                and(
-                  intersects,
-                  not(clockRunning(ring.clock)),
-                  neq(ring.state.position, ringScales.in),
+
+
+      <Animated.View
+        style={{
+          flex: 1,
+          position: 'absolute',
+          width: dotSize,
+          height: dotSize,
+          zIndex,
+          transform: [{
+            translateX: x.translate,
+            translateY: y.translate,
+          }]
+        }}
+      >
+        <PanGestureHandler
+          key={`dot-${i}`}
+          onGestureEvent={event([{
+            nativeEvent: ({ translationX, translationY }) => block([
+              cond(eq(panGestureState, State.ACTIVE), [
+                // Dot entering center
+                cond(
+                  and(
+                    intersects,
+                    not(clockRunning(ring.clock)),
+                    neq(ring.state.position, ringScales.in),
+                  ),
+                  [
+                    set(ring.a, 1),
+                    set(ring.state.position, ringScales.disabled),
+                    set(ring.config.toValue, ringScales.in),
+                    startClock(ring.clock),
+                  ]
                 ),
-                [
-                  set(ring.a, 1),
-                  set(ring.state.position, ringScales.disabled),
-                  set(ring.config.toValue, ringScales.in),
+                // Dot leaving center
+                cond(
+                  and(
+                    not(intersects),
+                    not(clockRunning(ring.clock)),
+                    neq(ring.state.position, ringScales.disabled),
+                  ), [
+                  set(ring.config.toValue, ringScales.disabled),
                   startClock(ring.clock),
                 ]
-              ),
-              // Dot leaving center
+                ),
+                set(x.drag, translationX),
+                set(y.drag, translationY),
+                cond(intersects, [
+                  set(placeholder.x, x.translate),
+                  set(placeholder.y, y.translate),
+                ]),
+              ])
+            ]),
+          }])}
+          onHandlerStateChange={event([{
+            nativeEvent: ({ state }) => block([
+              // Dot becoming inactive
               cond(
                 and(
-                  not(intersects),
-                  not(clockRunning(ring.clock)),
-                  neq(ring.state.position, ringScales.disabled),
-                ), [
-                set(ring.config.toValue, ringScales.disabled),
-                startClock(ring.clock),
-              ]
-              ),
-              set(x.drag, translationX),
-              set(y.drag, translationY),
-              cond(intersects, [
-                set(placeholder.x, x.translate),
-                set(placeholder.y, y.translate),
-              ]),
-            ])
-          ]),
-        }])}
-        onHandlerStateChange={event([{
-          nativeEvent: ({ state }) => block([
-            // Dot becoming inactive
-            cond(
-              and(
-                eq(panGestureState, State.ACTIVE),
-                neq(state, State.ACTIVE),
-              ), onDotInactive),
-            set(panGestureState, state),
-          ])
-        }])}
-      >
-
-        <Animated.View
-          style={{
-            flex: 1,
-            position: 'absolute',
-            width: dotSize,
-            height: dotSize,
-            zIndex,
-            transform: [{
-              translateX: x.translate,
-              translateY: y.translate,
-            }]
-          }}
-        >
-        <TapGestureHandler
-          onHandlerStateChange={event([{
-            nativeEvent: ({ state, translationX, translationY }) => block([
-              set(tapGestureState, state),
-              onChange(tapGestureState, [
-                debug('TAPPED', tapGestureState),
-                cond(eq(tapGestureState, State.BEGAN), [
-                  set(x.drag, translationX),
-                  set(y.drag, translationY),
-                  onDotActive
-                ]),
-                cond(eq(tapGestureState, State.END), onDotInactive),
+                  eq(panGestureState, State.ACTIVE),
+                  neq(state, State.ACTIVE),
+                ), onDotInactive),
+              set(panGestureState, state),
+              onChange(panGestureState, [
+                cond(eq(panGestureState, State.ACTIVE), onDotActive),
               ])
             ])
           }])}
         >
-          <Animated.View
-            style={{
-              position: 'absolute',
-              opacity: 0.85,
-              width: dotSize,
-              height: dotSize,
-              borderRadius: dotSize / 2,
-              backgroundColor: color,
-              transform: [{
-                scaleX: scale.value,
-                scaleY: scale.value,
-              }]
-            }}
-          />
+          <Animated.View style={{ flex: 1 }}>
+            <TapGestureHandler
+              onHandlerStateChange={event([{
+                nativeEvent: ({ state, translationX, translationY }) => block([
+                  set(tapGestureState, state),
+                  onChange(tapGestureState, [
+                    cond(eq(tapGestureState, State.BEGAN), [
+                      set(x.drag, translationX),
+                      set(y.drag, translationY),
+                      onDotActive
+                    ]),
+                    cond(eq(tapGestureState, State.END), onDotInactive),
+                  ])
+                ])
+              }])}
+            >
+              <Animated.View
+                style={{
+                  position: 'absolute',
+                  opacity: 0.85,
+                  width: dotSize,
+                  height: dotSize,
+                  borderRadius: dotSize / 2,
+                  backgroundColor: color,
+                  transform: [{
+                    scaleX: scale.value,
+                    scaleY: scale.value,
+                  }]
+                }}
+              />
             </TapGestureHandler>
-        </Animated.View>
-      </PanGestureHandler>
+          </Animated.View>
+        </PanGestureHandler>
+      </Animated.View>
     )
   }
 
@@ -594,8 +599,8 @@ class Dots extends Component {
           {this.dots.map(this.renderPlaceholder)}
           {this.renderDropZone()}
           {this.dots.map(this.renderDot)}
-          </SafeAreaView>
-          <BackButton />
+        </SafeAreaView>
+        <BackButton />
       </Animated.View>
     )
   }

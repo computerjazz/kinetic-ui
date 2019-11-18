@@ -141,7 +141,6 @@ class StackPreview extends React.Component {
       // `colorIndex` compensates for this
       const maxIndex = arr.length - 1
       const colorIndex = maxIndex - (i + maxIndex) % (arr.length)
-      console.log('color', `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`)
       return {
         color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
         scale: scaleXY,

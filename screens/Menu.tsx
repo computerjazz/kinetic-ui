@@ -91,12 +91,12 @@ class Menu extends Component<Props> {
         ...StyleSheet.absoluteFillObject,
       }}>
         <LinearGradient
-          style={{ flex: .5, opacity: 0.2 }}
+          style={{ flex: .5, opacity: 0.15 }}
           colors={['black', 'transparent']}
         />
         <View style={{ flex: .25 }} />
         <LinearGradient
-          style={{ flex: .25, opacity: 0.15 }}
+          style={{ flex: .25, opacity: 0.1 }}
           colors={['transparent', 'black']}
         />
       </View>

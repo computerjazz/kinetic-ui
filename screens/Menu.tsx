@@ -16,6 +16,16 @@ import Animated from 'react-native-reanimated'
 import MenuTitle from '../components/MenuTitle';
 const { Clock, Value } = Animated
 
+// Original colors
+// const colors = ['rgb(42.5, 85.5, 212.5)', 'rgb(127.5, 0.5, 127.5)']
+// const [start, end] = colors
+
+// Opacity modified colors
+const colors = ['#5f7ddb', '#7f007f']
+const [start, end] = colors
+
+
+
 const screens = [
   {
     title: 'Deck',
@@ -65,13 +75,13 @@ class Menu extends Component<Props> {
   focused = new Value(0)
   focusListener
 
-  componentDidMount(){
+  componentDidMount() {
     this.focusListener = this.props.navigation.addListener('didFocus', () => {
       // this.focused.setValue(1)
     })
   }
 
-  renderOption = ({ title, screen, Preview, titleColor}) => (
+  renderOption = ({ title, screen, Preview, titleColor }) => (
     <View
       key={`menu-option-${title}`}
       style={{
@@ -84,8 +94,8 @@ class Menu extends Component<Props> {
         borderRadius: width / 2,
         borderColor: '#ddd',
         borderWidth: 4,
-      }} 
-      >
+      }}
+    >
       <Preview title={""} focused={this.focused} clock={this.clock} width={width / 2} height={width / 2} />
       <View style={{
         ...StyleSheet.absoluteFillObject,
@@ -113,32 +123,49 @@ class Menu extends Component<Props> {
         }}
       >
         <MenuTitle text={title.toUpperCase()} color={titleColor || 'seashell'} />
-
       </TouchableOpacity>
     </View>
   )
 
+
+
   render() {
+
     return (
       <View style={{
         flex: 1, backgroundColor: 'seashell'
       }}
+      >       
+      <View style={{
+        ...StyleSheet.absoluteFillObject,
+      }}
       >
-        <LinearGradient style={{
-          ...StyleSheet.absoluteFillObject,
-          opacity: 0.75,
-        }}
-          colors={['rgb(42.5, 85.5, 212.5)', 'rgb(127.5, 0.5, 127.5)']}
-        />
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: start
+            }}
+          />
+          <View style={{
+            flex: 1,
+            backgroundColor: end
+          }} />
+        </View>
+
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            alignItems: 'center',
-            marginTop: 40,
-            paddingBottom: 50,
-          }}
         >
-          {screens.map(this.renderOption)}
+          <LinearGradient style={{
+            flex: 1,
+            paddingTop: 40,
+            paddingBottom: 50,
+            width: '100%',
+            alignItems: 'center',
+          }}
+            colors={[start, end]}
+          >
+            {screens.map(this.renderOption)}
+          </LinearGradient>
         </ScrollView>
       </View>
     )

@@ -48,7 +48,7 @@ class Deck extends Component {
 
   constructor(props) {
     super(props)
-    const { height, width, clock } = props
+    const { height, width, clock, focused } = props
     const tickHeight = height * 0.75
 
     this.mainHandler = React.createRef()
@@ -78,14 +78,14 @@ class Deck extends Component {
 
 
     const previewState = {
-      position: new Value(0),
+      position: new Value(height / 2),
       finished: new Value(0),
       time: new Value(0),
       velocity: new Value(0),
     }
 
     const previewConfig = {
-      toValue: new Value(height / 2),
+      toValue: new Value(0),
       damping: 8,
       mass: 1,
       stiffness: new Value(50.296),
@@ -95,7 +95,7 @@ class Deck extends Component {
     }
 
     const runClock = [
-      cond(clockRunning(clock), [
+      cond(and(focused, clockRunning(clock)), [
         spring(clock, previewState, previewConfig),
         cond(previewState.finished, [
           stopClock(clock),

@@ -67,7 +67,7 @@ class Menu extends Component<Props> {
 
   componentDidMount(){
     this.focusListener = this.props.navigation.addListener('didFocus', () => {
-      this.focused.setValue(1)
+      // this.focused.setValue(1)
     })
   }
 

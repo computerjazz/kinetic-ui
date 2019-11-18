@@ -494,6 +494,13 @@ class Dots extends Component {
                       onDotActive
                     ]),
                     cond(eq(tapGestureState, State.END), onDotInactive),
+                    cond(and(
+                      or(
+                        eq(tapGestureState, State.FAILED),
+                        eq(tapGestureState, State.CANCELLED),
+                      ),
+                      neq(panGestureState, State.ACTIVE)
+                    ), onDotInactive),
                   ])
                 ])
               }])}
@@ -522,6 +529,7 @@ class Dots extends Component {
   renderPlaceholder = ({ placeholder }, i) => (
     <Animated.View
       key={`placeholder-${i}`}
+      pointerEvents="none"
       style={{
         position: 'absolute',
         opacity: 0.85,
@@ -544,6 +552,7 @@ class Dots extends Component {
     return (
       <Animated.View
         key={`ring-${i}`}
+        pointerEvents="none"
         style={{
           position: 'absolute',
           opacity: ring.opacity,
@@ -568,6 +577,7 @@ class Dots extends Component {
   renderDropZone = () => {
     return (
       <Animated.View
+        pointerEvents="none"
         style={{
           position: 'absolute',
           width: dropZoneRadius,

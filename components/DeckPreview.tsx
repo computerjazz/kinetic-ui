@@ -46,8 +46,9 @@ const flingThresh = 500
 
 class Deck extends Component {
 
-  constructor({ height, width, clock }) {
-    super()
+  constructor(props) {
+    super(props)
+    const { height, width, clock } = props
     const tickHeight = height * 0.75
 
     this.mainHandler = React.createRef()
@@ -75,8 +76,44 @@ class Deck extends Component {
       restDisplacementThreshold: 0.001,
     }
 
-    this.cumulativeTrans = new Value(height / 2)
-    const ry = Animated.interpolate(this.cumulativeTrans, {
+
+    const previewState = {
+      position: new Value(0),
+      finished: new Value(0),
+      time: new Value(0),
+      velocity: new Value(0),
+    }
+
+    const previewConfig = {
+      toValue: new Value(height / 2),
+      damping: 8,
+      mass: 1,
+      stiffness: new Value(50.296),
+      overshootClamping: false,
+      restSpeedThreshold: 0.001,
+      restDisplacementThreshold: 0.001,
+    }
+
+    const runClock = [
+      cond(clockRunning(clock), [
+        spring(clock, previewState, previewConfig),
+        cond(previewState.finished, [
+          stopClock(clock),
+          set(previewState.finished, 0),
+          set(previewState.time, 0),
+          set(previewState.velocity, 0),
+          set(previewConfig.toValue, 
+            cond(greaterThan(previewConfig.toValue, 0), 0, height / 2)
+            ),
+          startClock(clock),
+        ])
+      ], [
+        startClock(clock),
+      ]),
+      previewState.position
+    ]
+
+    const ry = Animated.interpolate(runClock, {
       inputRange: [0, height],
       outputRange: [0, 1],
     })

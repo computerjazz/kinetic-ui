@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
-import { Text, View, TouchableOpacity, Dimensions, ScrollView, StyleSheet } from 'react-native'
+import { View, TouchableOpacity, Dimensions, ScrollView, StyleSheet } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient';
+import { NavigationScreenProp } from 'react-navigation'
 
 import StackPreview from '../components/StackPreview'
 import CarouselPreview from '../components/CarouselPreview'
@@ -55,9 +56,20 @@ const screens = [
 
 ]
 
-class Menu extends Component {
+type Props = {
+  navigation: NavigationScreenProp<any>
+}
+
+class Menu extends Component<Props> {
   clock = new Clock()
   focused = new Value(0)
+  focusListener
+
+  componentDidMount(){
+    this.focusListener = this.props.navigation.addListener('didFocus', () => {
+      this.focused.setValue(1)
+    })
+  }
 
   renderOption = ({ title, screen, Preview, titleColor}) => (
     <View

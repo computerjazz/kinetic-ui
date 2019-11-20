@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { View, Dimensions, Platform, SafeAreaView } from 'react-native'
 import Animated from 'react-native-reanimated';
-import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
+import { PanGestureHandler, State, TapGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent } from 'react-native-gesture-handler';
 import BackButton from '../components/BackButton'
 
 const { width, height } = Dimensions.get('window');
@@ -52,6 +52,8 @@ class CardStack extends Component {
   _tempOffset: Animated.Value<number>
   activeIndex: Animated.Node<number>
 
+  onPanGestureEvent: (e: PanGestureHandlerGestureEvent) => void
+  onPanStateChange: (e: PanGestureHandlerStateChangeEvent) => void
 
   constructor(props) {
     super(props)
@@ -88,6 +90,57 @@ class CardStack extends Component {
       inputRange: [0, tickHeight],
       outputRange: [0, 1],
     })
+
+    this.onPanGestureEvent = event([{
+      nativeEvent: ({ translationY: y, velocityY }) => block([
+        cond(eq(this.gestureState, State.ACTIVE), [
+          set(this.translationY, y),
+          set(this.velocity, velocityY),
+        ])
+      ])
+    }])
+
+    this.onPanStateChange = event([{
+      nativeEvent: ({ state }) => block([
+        cond(and(eq(state, State.ACTIVE), clockRunning(this.clock)), [
+          stopClock(this.clock),
+          set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
+          set(this.sprState.position, 0),
+          set(this.sprState.time, 0),
+          set(this.sprState.velocity, 0),
+          set(this.sprState.finished, 0),
+        ]),
+
+        cond(and(neq(this.gestureState, State.END), eq(state, State.END)), [
+          set(this.prevTrans, add(this.translationY, this.prevTrans)),
+
+          // if translate amt is greater than tickHeight / 2 or is fling gesture
+          // snap to next index, otherwise snap back to current index
+          set(this.sprConfig.toValue, cond(
+            [
+              or(
+                greaterThan(this.velocity, flingThresh), // Fling down
+                and(
+                  not(lessThan(this.velocity, -flingThresh)), // Fling up
+                  greaterThan(modulo(this.prevTrans, tickHeight), tickHeight / 2),
+                )
+              )
+            ],
+            [
+              // snap to next index
+              set(this._tempOffset, sub(tickHeight, modulo(this.prevTrans, tickHeight))),
+            ], [
+            // snap to current index
+            set(this._tempOffset, multiply(modulo(this.prevTrans, tickHeight), -1)),
+          ])
+          ),
+          startClock(this.clock),
+          set(this.translationY, 0),
+        ]),
+        set(this.gestureState, state),
+      ])
+    }]
+    )
 
     this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
       const colorMultiplier = 255 / (arr.length - 1)
@@ -268,61 +321,11 @@ class CardStack extends Component {
         backgroundColor: 'seashell',
       }}>
         <SafeAreaView style={{ flex: 1 }}>
-
-
           <PanGestureHandler
             ref={this.mainHandler}
-            onGestureEvent={event([{
-              nativeEvent: ({ translationY: y, velocityY }) => block([
-                cond(eq(this.gestureState, State.ACTIVE), [
-                  set(this.translationY, y),
-                  set(this.velocity, velocityY),
-                ])
-              ])
-            }])}
-            onHandlerStateChange={event([{
-              nativeEvent: ({ state }) => block([
-                cond(and(eq(state, State.ACTIVE), clockRunning(this.clock)), [
-                  stopClock(this.clock),
-                  set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
-                  set(this.sprState.position, 0),
-                  set(this.sprState.time, 0),
-                  set(this.sprState.velocity, 0),
-                  set(this.sprState.finished, 0),
-                ]),
-
-                cond(and(neq(this.gestureState, State.END), eq(state, State.END)), [
-                  set(this.prevTrans, add(this.translationY, this.prevTrans)),
-
-                  // if translate amt is greater than tickHeight / 2 or is fling gesture
-                  // snap to next index, otherwise snap back to current index
-                  set(this.sprConfig.toValue, cond(
-                    [
-                      or(
-                        greaterThan(this.velocity, flingThresh), // Fling down
-                        and(
-                          not(lessThan(this.velocity, -flingThresh)), // Fling up
-                          greaterThan(modulo(this.prevTrans, tickHeight), tickHeight / 2),
-                        )
-                      )
-                    ],
-                    [
-                      // snap to next index
-                      set(this._tempOffset, sub(tickHeight, modulo(this.prevTrans, tickHeight))),
-                    ], [
-                    // snap to current index
-                    set(this._tempOffset, multiply(modulo(this.prevTrans, tickHeight), -1)),
-                  ])
-                  ),
-                  startClock(this.clock),
-                  set(this.translationY, 0),
-                ]),
-                set(this.gestureState, state),
-              ])
-            }]
-            )}
+            onGestureEvent={this.onPanGestureEvent}
+            onHandlerStateChange={this.onPanStateChange}
           >
-
             <Animated.View style={{
               flex: 1,
               marginTop: 50,

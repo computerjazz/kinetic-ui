@@ -122,6 +122,21 @@ class Carousel extends Component<Props> {
 
     const cumulativeTrans = add(this.prevTrans, this.translationX, this.animState.position) // TODO: figure out how to do this without inverting
     const colorMultiplier = 255 / maxIndex
+
+    const resetAnimState = [
+      set(this.animState.time, 0),
+      set(this.animState.position, 0),
+      set(this.animState.frameTime, 0),
+      set(this.animState.finished, 0)
+    ]
+
+    const resetAltState = [
+      set(this.altState.time, 0),
+      set(this.altState.velocity, 0),
+      set(this.altState.finished, 0),
+      set(this.altState.position, 0),
+    ]
+
     const runClock = [
       cond(clockRunning(this.clock), [
         timing(this.clock, this.animState, this.animConfig),
@@ -133,20 +148,14 @@ class Carousel extends Component<Props> {
           [
             stopClock(this.clock),
             set(this.prevTrans, add(this.prevTrans, this.animState.position)),
-            set(this.animState.position, 0),
-            set(this.animState.time, 0),
-            set(this.animState.frameTime, 0),
-            set(this.animState.finished, 0),
+            resetAnimState,
           ]),
       ]),
       cond(clockRunning(this.altClock), [
         spring(this.altClock, this.altState, this.altConfig),
         cond(and(eq(this.altState.finished, 1), clockRunning(this.altClock)), [
           stopClock(this.altClock),
-          set(this.altState.time, 0),
-          set(this.altState.velocity, 0),
-          set(this.altState.finished, 0),
-          set(this.altState.position, 0),
+          resetAltState,
         ]),
       ])
     ]
@@ -266,11 +275,8 @@ class Carousel extends Component<Props> {
                 set(this.altState.position, this._prevLeanAmt),
                 startClock(this.altClock),
                 stopClock(this.clock),
-                set(this.prevTrans, add(this.prevTrans, this.animState.position)),
-                set(this.animState.position, 0),
-                set(this.animState.time, 0),
-                set(this.animState.frameTime, 0),
-                set(this.animState.finished, 0)
+                set(this.prevTrans, cumulativeTrans),
+                resetAnimState,
               ])
             ])
           ])
@@ -294,10 +300,7 @@ class Carousel extends Component<Props> {
           cond(eq(this.panGestureState, State.ACTIVE), [
             cond(clockRunning(this.clock), [
               stopClock(this.clock),
-              set(this.animState.time, 0),
-              set(this.animState.position, 0),
-              set(this.animState.frameTime, 0),
-              set(this.animState.finished, 0)
+              resetAnimState,
             ]),
           ]),
 
@@ -307,17 +310,11 @@ class Carousel extends Component<Props> {
               set(this.translationX, 0),
               cond(clockRunning(this.clock), [
                 stopClock(this.clock),
-                set(this.animState.time, 0),
-                set(this.animState.position, 0),
-                set(this.animState.frameTime, 0),
-                set(this.animState.finished, 0)
+                resetAnimState
               ]),
               cond(greaterThan(abs(this.animConfig.toValue), 0), [
                 set(this.animConfig.duration, 5000),
-                set(this.animState.time, 0),
-                set(this.animState.position, 0),
-                set(this.animState.frameTime, 0),
-                set(this.animState.finished, 0),
+                resetAnimState,
                 startClock(this.clock),
               ]),
             ]),

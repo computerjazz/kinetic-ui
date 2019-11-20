@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Dimensions, StyleSheet, SafeAreaView } from 'react-native';
 import Animated, { Easing } from 'react-native-reanimated';
-import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
+import { PanGestureHandler, State, TapGestureHandler, LongPressGestureHandler } from 'react-native-gesture-handler';
 
 import BackButton from '../components/BackButton'
 
@@ -322,7 +322,7 @@ class Dots extends Component {
         endState.position,
       ]
 
-      const scale = cond(
+      const scaleVal = cond(
         clockRunning(endClock), [
         set(placeholder.scale, multiply(add(1, additionalScale), add(1, multiply(-1, runEndClock)))),
         runEndClock,
@@ -332,24 +332,156 @@ class Dots extends Component {
       ],
       )
 
+      const panGestureState = new Value(State.UNDETERMINED)
+      const longPressGestureState = new Value(State.UNDETERMINED)
+      const tapGestureState = new Value(State.UNDETERMINED)
+      const zIndex = new Value(999)
+
+      const rgb = { r, g, b }
+      const scale = {
+        clock: clock,
+        value: scaleVal,
+        state: dotScaleState,
+        config: dotScaleConfig,
+      }
+
+      const onDotInactive = [
+        cond(intersects, [
+          set(placeholder.a, 1),
+          set(endState.position, endState.disabled),
+          startClock(endClock),
+        ], set(placeholder.a, 0)),
+
+        set(scale.config.toValue, 0),
+        startClock(scale.clock),
+
+        set(ring.config.toValue, cond(intersects, ringScales.out, ringScales.disabled)),
+        startClock(ring.clock),
+        set(zIndex, 999),
+      ]
+
+      const onDotActive = [
+        set(ring.a, 0), // Hide ring spring back to center
+        set(placeholder.a, 0),
+        set(ring.r, rgb.r),
+        set(ring.g, rgb.g),
+        set(ring.b, rgb.b),
+        set(placeholder.r, rgb.r),
+        set(placeholder.g, rgb.g),
+        set(placeholder.b, rgb.b),
+        set(zIndex, 9999),
+        set(scale.config.toValue, 1),
+        startClock(scale.clock),
+
+        cond(or(
+          clockRunning(ring.clock),
+          neq(ring.state.position, ringScales.disabled),
+        ), [
+          stopClock(ring.clock),
+          set(ring.state.position, ringScales.disabled),
+          set(ring.state.finished, 0),
+          set(ring.state.velocity, 0),
+          set(ring.state.time, 0),
+        ]),
+      ]
+
+      const onPanGestureEvent = event([{
+        nativeEvent: ({ translationX, translationY }) => block([
+          cond(eq(panGestureState, State.ACTIVE), [
+            // Dot entering center
+            cond(
+              and(
+                intersects,
+                not(clockRunning(ring.clock)),
+                neq(ring.state.position, ringScales.in),
+              ),
+              [
+                set(ring.a, 1),
+                set(ring.state.position, ringScales.disabled),
+                set(ring.config.toValue, ringScales.in),
+                startClock(ring.clock),
+              ]
+            ),
+            // Dot leaving center
+            cond(
+              and(
+                not(intersects),
+                not(clockRunning(ring.clock)),
+                neq(ring.state.position, ringScales.disabled),
+              ), [
+              set(ring.config.toValue, ringScales.disabled),
+              startClock(ring.clock),
+            ]
+            ),
+            set(x.drag, translationX),
+            set(y.drag, translationY),
+            cond(intersects, [
+              set(placeholder.x, x.translate),
+              set(placeholder.y, y.translate),
+            ]),
+          ])
+        ]),
+      }])
+
+      const onPanStateChange = event([{
+        nativeEvent: ({ state }) => block([
+          // Dot becoming inactive
+          cond(
+            and(
+              eq(panGestureState, State.ACTIVE),
+              neq(state, State.ACTIVE),
+            ), onDotInactive),
+          set(panGestureState, state),
+          onChange(panGestureState, [
+            cond(eq(panGestureState, State.ACTIVE), onDotActive),
+          ]),
+        ])
+      }])
+
+      const onLongPressStateChange = event([{
+        nativeEvent: ({ state, translationX, translationY }) => block([
+          set(longPressGestureState, state),
+          onChange(longPressGestureState, [
+            cond(eq(longPressGestureState, State.BEGAN), [
+              set(x.drag, translationX),
+              set(y.drag, translationY),
+              onDotActive
+            ]),
+            cond(eq(longPressGestureState, State.END), onDotInactive)
+          ])
+        ])
+      }])
+
+      const onTapStateChange = event([{
+        nativeEvent: ({ state, translationX, translationY }) => block([
+          set(tapGestureState, state),
+          onChange(tapGestureState, [
+            cond(eq(tapGestureState, State.BEGAN), [
+              set(x.drag, translationX),
+              set(y.drag, translationY),
+              onDotActive
+            ]),
+            cond(eq(tapGestureState, State.END), onDotInactive),
+          ])
+        ])
+      }])
+
       return {
-        panGestureState: new Value(State.UNDETERMINED),
-        tapGestureState: new Value(State.UNDETERMINED),
-        zIndex: new Value(999),
+        panRef: React.createRef(),
+        onPanGestureEvent,
+        onPanStateChange,
+        onLongPressStateChange,
+        onTapStateChange,
+        zIndex,
         intersects,
         x,
         y,
-        scale: {
-          clock: clock,
-          value: scale,
-          state: dotScaleState,
-          config: dotScaleConfig,
-        },
+        scale,
         clock,
         endClock,
         endState,
         color: dotColor,
-        rgb: { r, g, b },
+        rgb,
         placeholder,
         ring,
       }
@@ -360,62 +492,19 @@ class Dots extends Component {
     x,
     y,
     color,
-    rgb,
     scale,
-    panGestureState,
-    tapGestureState,
-    endClock,
-    endState,
+    panRef,
+    onPanGestureEvent,
+    onPanStateChange,
+    onLongPressStateChange,
+    onTapStateChange,
     zIndex,
-    intersects,
-    placeholder,
-    ring,
   }, i) => {
 
-    const onDotInactive = [
-      cond(intersects, [
-        set(placeholder.a, 1),
-        set(endState.position, endState.disabled),
-        startClock(endClock),
-      ], set(placeholder.a, 0)),
-
-      set(scale.config.toValue, 0),
-      startClock(scale.clock),
-
-      set(ring.config.toValue, cond(intersects, ringScales.out, ringScales.disabled)),
-      startClock(ring.clock),
-      set(zIndex, 999),
-    ]
-
-    const onDotActive = [
-      set(ring.a, 0), // Hide ring spring back to center
-      set(placeholder.a, 0),
-      set(ring.r, rgb.r),
-      set(ring.g, rgb.g),
-      set(ring.b, rgb.b),
-      set(placeholder.r, rgb.r),
-      set(placeholder.g, rgb.g),
-      set(placeholder.b, rgb.b),
-      set(zIndex, 9999),
-      set(scale.config.toValue, 1),
-      startClock(scale.clock),
-
-      cond(or(
-        clockRunning(ring.clock),
-        neq(ring.state.position, ringScales.disabled),
-      ), [
-        stopClock(ring.clock),
-        set(ring.state.position, ringScales.disabled),
-        set(ring.state.finished, 0),
-        set(ring.state.velocity, 0),
-        set(ring.state.time, 0),
-      ]),
-    ]
 
     return (
-
-
       <Animated.View
+        key={`dot-${i}`}
         style={{
           flex: 1,
           position: 'absolute',
@@ -429,124 +518,66 @@ class Dots extends Component {
         }}
       >
         <PanGestureHandler
-          key={`dot-${i}`}
-          onGestureEvent={event([{
-            nativeEvent: ({ translationX, translationY }) => block([
-              cond(eq(panGestureState, State.ACTIVE), [
-                // Dot entering center
-                cond(
-                  and(
-                    intersects,
-                    not(clockRunning(ring.clock)),
-                    neq(ring.state.position, ringScales.in),
-                  ),
-                  [
-                    set(ring.a, 1),
-                    set(ring.state.position, ringScales.disabled),
-                    set(ring.config.toValue, ringScales.in),
-                    startClock(ring.clock),
-                  ]
-                ),
-                // Dot leaving center
-                cond(
-                  and(
-                    not(intersects),
-                    not(clockRunning(ring.clock)),
-                    neq(ring.state.position, ringScales.disabled),
-                  ), [
-                  set(ring.config.toValue, ringScales.disabled),
-                  startClock(ring.clock),
-                ]
-                ),
-                set(x.drag, translationX),
-                set(y.drag, translationY),
-                cond(intersects, [
-                  set(placeholder.x, x.translate),
-                  set(placeholder.y, y.translate),
-                ]),
-              ])
-            ]),
-          }])}
-          onHandlerStateChange={event([{
-            nativeEvent: ({ state }) => block([
-              // Dot becoming inactive
-              cond(
-                and(
-                  eq(panGestureState, State.ACTIVE),
-                  neq(state, State.ACTIVE),
-                ), onDotInactive),
-              set(panGestureState, state),
-              onChange(panGestureState, [
-                cond(eq(panGestureState, State.ACTIVE), onDotActive),
-              ])
-            ])
-          }])}
+          ref={panRef}
+          onGestureEvent={onPanGestureEvent}
+          onHandlerStateChange={onPanStateChange}
         >
           <Animated.View style={{ flex: 1 }}>
-            <TapGestureHandler
-              onHandlerStateChange={event([{
-                nativeEvent: ({ state, translationX, translationY }) => block([
-                  set(tapGestureState, state),
-                  onChange(tapGestureState, [
-                    cond(eq(tapGestureState, State.BEGAN), [
-                      set(x.drag, translationX),
-                      set(y.drag, translationY),
-                      onDotActive
-                    ]),
-                    cond(eq(tapGestureState, State.END), onDotInactive),
-                    cond(and(
-                      or(
-                        eq(tapGestureState, State.FAILED),
-                        eq(tapGestureState, State.CANCELLED),
-                      ),
-                      neq(panGestureState, State.ACTIVE)
-                    ), onDotInactive),
-                  ])
-                ])
-              }])}
+            <LongPressGestureHandler
+              simultaneousHandlers={panRef}
+              maxDist={0}
+              onHandlerStateChange={onLongPressStateChange}
             >
-              <Animated.View
-                style={{
-                  position: 'absolute',
-                  opacity: 0.85,
-                  width: dotSize,
-                  height: dotSize,
-                  borderRadius: dotSize / 2,
-                  backgroundColor: color,
-                  transform: [{
-                    scaleX: scale.value,
-                    scaleY: scale.value,
-                  }]
-                }}
-              />
-            </TapGestureHandler>
+              <Animated.View style={{ flex: 1 }}>
+                <TapGestureHandler
+                  onHandlerStateChange={onTapStateChange}
+                >
+                  <Animated.View
+                    style={{
+                      position: 'absolute',
+                      opacity: 0.85,
+                      width: dotSize,
+                      height: dotSize,
+                      borderRadius: dotSize / 2,
+                      backgroundColor: color,
+                      transform: [{
+                        scaleX: scale.value,
+                        scaleY: scale.value,
+                      }]
+                    }}
+                  />
+                </TapGestureHandler>
+              </Animated.View>
+            </LongPressGestureHandler>
           </Animated.View>
         </PanGestureHandler>
       </Animated.View>
     )
   }
 
-  renderPlaceholder = ({ placeholder }, i) => (
-    <Animated.View
-      key={`placeholder-${i}`}
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        opacity: 0.85,
-        width: dotSize,
-        height: dotSize,
-        borderRadius: dotSize / 2,
-        backgroundColor: placeholder.color,
-        zIndex: 999,
-        transform: [{
-          translateX: placeholder.x,
-          translateY: placeholder.y,
-          scaleX: placeholder.scale,
-          scaleY: placeholder.scale,
-        }]
-      }}
-    />
-  )
+  renderPlaceholder = ({ placeholder }, i) => {
+    return (
+      <Animated.View
+        key={`placeholder-${i}`}
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          opacity: 0.85,
+          width: dotSize,
+          height: dotSize,
+          borderRadius: dotSize / 2,
+          backgroundColor: placeholder.color,
+          zIndex: 999,
+          transform: [{
+            translateX: placeholder.x,
+            translateY: placeholder.y,
+            scaleX: placeholder.scale,
+            scaleY: placeholder.scale,
+          }]
+        }}
+      />
+    )
+  }
 
   renderRing = ({ ring }, i) => {
     return (

@@ -17,6 +17,8 @@ const {
   or,
   add,
   multiply,
+  lessThan,
+  interpolate,
   greaterThan,
   spring,
   timing,
@@ -41,8 +43,7 @@ interface Props {
   navigation: any
 }
 
-class CardStack extends Component<Props> {
-  state = {}
+class Carousel extends Component<Props> {
 
   mainHandler: React.RefObject<PanGestureHandler>
   translationX: Animated.Value<number>
@@ -55,7 +56,7 @@ class CardStack extends Component<Props> {
   clock: Animated.Clock
   altClock: Animated.Clock
   _mounted: Animated.Value<number>
-  _temp: Animated.Value<number>
+  _prevLeanAmt: Animated.Value<number>
   animState: Animated.TimingState
   animConfig: Animated.TimingConfig
   altState: Animated.SpringState
@@ -119,74 +120,64 @@ class CardStack extends Component<Props> {
     const size = width * 0.8
     const maxIndex = numCards - 1
 
-    this._temp = new Value(0)
+    const cumulativeTrans = add(this.prevTrans, this.translationX, this.animState.position) // TODO: figure out how to do this without inverting
+    const colorMultiplier = 255 / maxIndex
+    const runClock = [
+      cond(clockRunning(this.clock), [
+        timing(this.clock, this.animState, this.animConfig),
+        cond(
+          or(
+            not(this._mounted),
+            and(this.animState.finished, clockRunning(this.clock))
+          ),
+          [
+            stopClock(this.clock),
+            set(this.prevTrans, add(this.prevTrans, this.animState.position)),
+            set(this.animState.position, 0),
+            set(this.animState.time, 0),
+            set(this.animState.frameTime, 0),
+            set(this.animState.finished, 0),
+          ]),
+      ]),
+      cond(clockRunning(this.altClock), [
+        spring(this.altClock, this.altState, this.altConfig),
+        cond(and(eq(this.altState.finished, 1), clockRunning(this.altClock)), [
+          stopClock(this.altClock),
+          set(this.altState.time, 0),
+          set(this.altState.velocity, 0),
+          set(this.altState.finished, 0),
+          set(this.altState.position, 0),
+        ]),
+      ])
+    ]
+
+    this._prevLeanAmt = new Value(0)
+    const prevDiff = new Value(0)
+    const absTrans = abs(cumulativeTrans)
+    const diffAmt = diff(absTrans)
+    const diffOfTheDiff = diff(diffAmt)
+    const diffSmoothed = cond(
+      or(
+        lessThan(abs(diffOfTheDiff), 1),
+        eq(this.tapGestureState, State.BEGAN),
+      )
+      , [
+        diffOfTheDiff,
+        set(prevDiff, diffAmt),
+        diffAmt,
+      ], prevDiff)
+
+    const diffScaled = multiply(diffSmoothed, 0.005)
+
+    const leanAmt = block([
+      runClock,
+      onChange(diffScaled, [
+        set(this._prevLeanAmt, diffScaled),
+      ]),
+      diffScaled,
+    ])
 
     this.cards = [...Array(numCards)].fill(0).map((_d, i, arr) => {
-      const colorMultiplier = 255 / maxIndex
-      const index = new Value(i)
-
-      const runClock = [
-        cond(clockRunning(this.clock), [
-          timing(this.clock, this.animState, this.animConfig),
-          cond(
-            or(
-              not(this._mounted),
-              and(this.animState.finished, clockRunning(this.clock))
-            ),
-            [
-              stopClock(this.clock),
-              set(this.prevTrans, add(this.prevTrans, this.animState.position)),
-              set(this.animState.position, 0),
-              set(this.animState.time, 0),
-              set(this.animState.frameTime, 0),
-              set(this.animState.finished, 0),
-            ]),
-        ]),
-        cond(clockRunning(this.altClock), [
-          spring(this.altClock, this.altState, this.altConfig),
-          cond(and(eq(this.altState.finished, 1), clockRunning(this.altClock)), [
-            stopClock(this.altClock),
-            set(this.altState.time, 0),
-            set(this.altState.velocity, 0),
-            set(this.altState.finished, 0),
-            set(this.altState.position, 0),
-          ]),
-        ])
-
-      ]
-
-      const cumulativeTrans = add(this.prevTrans, this.translationX, this.animState.position) // TODO: figure out how to do this without inverting
-
-      const interpolated = Animated.interpolate(cumulativeTrans, {
-        inputRange: [-tickWidth, 0, tickWidth],
-        outputRange: [sub(index, 1), index, add(index, 1)],
-      })
-
-      const leanAmt = multiply(diff(cumulativeTrans), 0.005)
-      const transToIndex = modulo([
-        runClock,
-        set(this._temp, leanAmt),
-        interpolated], arr.length)
-
-      const rotateX = multiply(min(0.2, abs(add(leanAmt, this.altState.position))), -1)
-      const rotateY = Animated.interpolate(transToIndex, {
-        inputRange: [0, numCards],
-        outputRange: [0, Math.PI * 2],
-      })
-
-      const translateX = multiply(width / 3, sin(rotateY))
-      const translateY = 0
-
-      const scaleXY = add(1,
-        multiply(0.15, sin(add(Math.PI / 2, rotateY))),
-      )
-
-      const zIndex = Animated.interpolate(transToIndex, {
-        inputRange: [0, arr.length / 2, arr.length],
-        outputRange: [200, 0, 200],
-        extrapolate: Animated.Extrapolate.CLAMP,
-      })
-
       // Somehow the top of the stack ended up as index 0
       // but the next item down is arr.length - 1
       // for example, indices would go
@@ -197,6 +188,7 @@ class CardStack extends Component<Props> {
       // 1
       // `colorIndex` compensates for this
       const colorIndex = maxIndex - (i + maxIndex) % (arr.length)
+      const index = new Value(i)
       const cardTransY = new Value(0)
       const cardGestureState = new Value(0)
       const cardClock = new Clock()
@@ -216,6 +208,32 @@ class CardStack extends Component<Props> {
         restSpeedThreshold: 0.001,
         restDisplacementThreshold: 0.001,
       }
+
+      const interpolated = interpolate(cumulativeTrans, {
+        inputRange: [-tickWidth, 0, tickWidth],
+        outputRange: [sub(index, 1), index, add(index, 1)],
+      })
+
+      const transToIndex = modulo(interpolated, arr.length)
+
+      const rotateX = multiply(min(0.2, abs(add(leanAmt, this.altState.position))), -1)
+      const rotateY = interpolate(transToIndex, {
+        inputRange: [0, numCards],
+        outputRange: [0, Math.PI * 2],
+      })
+
+      const translateX = multiply(width / 3, sin(rotateY))
+      const translateY = 0
+
+      const scaleXY = add(1,
+        multiply(0.15, sin(add(Math.PI / 2, rotateY))),
+      )
+
+      const zIndex = interpolate(transToIndex, {
+        inputRange: [0, arr.length / 2, arr.length],
+        outputRange: [200, 0, 200],
+        extrapolate: Animated.Extrapolate.CLAMP,
+      })
 
       return {
         color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
@@ -243,9 +261,9 @@ class CardStack extends Component<Props> {
           set(this.tapGestureState, state),
           onChange(this.tapGestureState, [
             cond(eq(this.tapGestureState, State.BEGAN), [
-              set(this.velocity, 0),
+              set(this.animConfig.toValue, 0),
               cond(clockRunning(this.clock), [
-                set(this.altState.position, this._temp),
+                set(this.altState.position, this._prevLeanAmt),
                 startClock(this.altClock),
                 stopClock(this.clock),
                 set(this.prevTrans, add(this.prevTrans, this.animState.position)),
@@ -264,7 +282,7 @@ class CardStack extends Component<Props> {
       nativeEvent: ({ translationX: x, velocityX }) => block([
         cond(eq(this.panGestureState, State.ACTIVE), [
           set(this.translationX, x),
-          set(this.velocity, velocityX),
+          set(this.animConfig.toValue, velocityX),
         ])
       ])
     }])
@@ -294,8 +312,7 @@ class CardStack extends Component<Props> {
                 set(this.animState.frameTime, 0),
                 set(this.animState.finished, 0)
               ]),
-              cond(greaterThan(abs(this.velocity), 0), [
-                set(this.animConfig.toValue, this.velocity),
+              cond(greaterThan(abs(this.animConfig.toValue), 0), [
                 set(this.animConfig.duration, 5000),
                 set(this.animState.time, 0),
                 set(this.animState.position, 0),
@@ -391,9 +408,7 @@ class CardStack extends Component<Props> {
                 rotateX,
               }]
             }}
-          >
-            <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>{}</Text>
-          </Animated.View>
+          />
         </Animated.View>
       </PanGestureHandler>
     )
@@ -417,14 +432,16 @@ class CardStack extends Component<Props> {
         flex: 1,
         backgroundColor: 'seashell',
       }}>
-        <TapGestureHandler
-          onHandlerStateChange={this.onTapStateChange}
+        <PanGestureHandler
+          ref={this.mainHandler}
+          onGestureEvent={this.onPanGestureEvent}
+          onHandlerStateChange={this.onPanStateChange}
         >
           <Animated.View style={{ flex: 1 }}>
-            <PanGestureHandler
-              ref={this.mainHandler}
-              onGestureEvent={this.onPanGestureEvent}
-              onHandlerStateChange={this.onPanStateChange}
+            <TapGestureHandler
+              maxDist={0}
+              simultaneousHandlers={this.mainHandler}
+              onHandlerStateChange={this.onTapStateChange}
             >
               <Animated.View style={{
                 flex: 1,
@@ -434,13 +451,13 @@ class CardStack extends Component<Props> {
               }}>
                 {this.cards.map(this.renderCard)}
               </Animated.View>
-            </PanGestureHandler>
+            </TapGestureHandler>
           </Animated.View>
-        </TapGestureHandler>
+        </PanGestureHandler>
         <BackButton />
       </View>
     )
   }
 }
 
-export default CardStack
+export default Carousel

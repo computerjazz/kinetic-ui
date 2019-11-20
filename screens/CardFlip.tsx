@@ -288,7 +288,6 @@ class Card extends Component {
   onTapStateChange = event([{
     nativeEvent: ({ state }) => block([
       cond(and(neq(this.tapState, State.END), eq(state, State.END)), [
-        debug('tarting clock', this.tapSpr.position),
         startClock(this.tapClock)
       ]),
       set(this.tapState, state)

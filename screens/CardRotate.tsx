@@ -119,7 +119,6 @@ class Card extends Component {
     const stopClockIfFinished = [
       cond(this.springState.finished, [
         reset,
-        debug('done!', this.springState.finished),
         stopClock(this.clock),
       ])
     ]

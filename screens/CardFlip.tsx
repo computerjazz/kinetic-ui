@@ -1,39 +1,30 @@
 import React, { Component } from 'react'
-import { View, Dimensions, Text, Platform, SafeAreaView } from 'react-native'
-import Animated, { Easing } from 'react-native-reanimated';
+import { View, Dimensions, Text } from 'react-native'
+import Animated from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 
 const { width, height } = Dimensions.get('window');
-const isAndroid = Platform.OS === 'android'
 
 const {
-  onChange,
   debug,
   and,
-  not,
   set,
   neq,
   cond,
   eq,
-  or,
   add,
   multiply,
   divide,
-  greaterThan,
-  lessThan,
   spring,
-  timing,
   block,
   floor,
   startClock,
   stopClock,
   clockRunning,
   sub,
-  defined,
   Value,
   Clock,
   event,
-  sin,
   color,
   abs,
   modulo,
@@ -50,8 +41,48 @@ const colorMultiplier = 255 / maxIndex
 
 class Card extends Component {
 
-  constructor() {
-    super()
+  startIndexY: Animated.Value<number>
+  translationX: Animated.Value<number>
+  translationY: Animated.Value<number>
+  prevX: Animated.Value<number>
+  prevY: Animated.Value<number>
+  gestureState: Animated.Value<State>
+  tapState: Animated.Value<State>
+  _cx: Animated.Node<number>
+  _cy: Animated.Node<number>
+  _ix: Animated.Node<number>
+  _iy: Animated.Node<number>
+  indexX: Animated.Node<number>
+  indexY: Animated.Node<number>
+  index: Animated.Node<number>
+  targetX: Animated.Node<number>
+  targetY: Animated.Node<number>
+  _mx: Animated.Node<number>
+  _my: Animated.Node<number>
+  _isInverted: Animated.Node<number>
+  rotateX: Animated.Node<string>
+  rotateY: Animated.Node<string>
+  color: Animated.Node<number>
+  perspective: Animated.Value<number>
+  springState: Animated.SpringState
+  springConfig: Animated.SpringConfig
+  tapSpr: Animated.SpringState
+  tapCfg: Animated.SpringConfig
+  clock: Animated.Clock
+  tapClock: Animated.Clock
+  diffX: Animated.Value<number>
+  diffY: Animated.Value<number>
+  _px: Animated.Value<number>
+  _py: Animated.Value<number>
+  _x: Animated.Node<number>
+  _y: Animated.Node<number>
+  runClock: Animated.Node<number>
+  scale: Animated.Node<number>
+  shadowScale: Animated.Node<number>
+
+
+  constructor(props) {
+    super(props)
     this.startIndexY = new Value(0)
 
     this.translationX = new Value(0)
@@ -234,39 +265,52 @@ class Card extends Component {
     })
   }
 
-  render() {
 
+  onPanGestureEvent = event([{
+    nativeEvent: ({ translationX: x, translationY: y }) => block([
+      cond(eq(this.gestureState, State.ACTIVE), [
+        set(this.translationX, x),
+        set(this.translationY, y),
+      ])
+    ])
+  }
+  ])
+
+  onPanStateChange = event([{
+    nativeEvent: ({ state }) => block([
+      cond(and(neq(this.gestureState, State.ACTIVE), eq(state, State.ACTIVE)), [
+        set(this.startIndexY, this.indexY),
+      ]),
+      set(this.gestureState, state),
+    ])
+  }])
+
+  onTapStateChange = event([{
+    nativeEvent: ({ state }) => block([
+      cond(and(neq(this.tapState, State.END), eq(state, State.END)), [
+        debug('tarting clock', this.tapSpr.position),
+        startClock(this.tapClock)
+      ]),
+      set(this.tapState, state)
+    ])
+  }])
+
+  render() {
     return (
       <View style={{
         flex: 1,
         backgroundColor: 'seashell',
-
       }}
       >
         <PanGestureHandler
-          onGestureEvent={event([{
-            nativeEvent: ({ translationX: x, translationY: y }) => block([
-              cond(eq(this.gestureState, State.ACTIVE), [
-                set(this.translationX, x),
-                set(this.translationY, y),
-              ])
-            ])
-          }
-          ])}
-          onHandlerStateChange={event([{
-            nativeEvent: ({ state }) => block([
-              cond(and(neq(this.gestureState, State.ACTIVE), eq(state, State.ACTIVE)), [
-                set(this.startIndexY, this.indexY),
-              ]),
-              set(this.gestureState, state),
-            ])
-          }])}
+          onGestureEvent={this.onPanGestureEvent}
+          onHandlerStateChange={this.onPanStateChange}
         >
-          <Animated.View style={{ flex: 1,         
+          <Animated.View style={{
+            flex: 1,
             alignItems: 'center',
-          justifyContent: 'center' }}>
-
-
+            justifyContent: 'center'
+          }}>
             <Animated.View
               style={{
                 position: 'absolute',
@@ -288,17 +332,7 @@ class Card extends Component {
               }}
             />
             <TapGestureHandler
-              onHandlerStateChange={event([{
-                nativeEvent: ({ state }) => block([
-                  // debug('state change', this.tapSpr.position),
-
-                  cond(and(neq(this.tapState, State.END), eq(state, State.END)), [
-                    debug('tarting clock', this.tapSpr.position),
-                    startClock(this.tapClock)
-                  ]),
-                  set(this.tapState, state)
-                ])
-              }])}
+              onHandlerStateChange={this.onTapStateChange}
             >
               <Animated.View
                 style={{
@@ -322,7 +356,6 @@ class Card extends Component {
                 <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white' }}>{}</Text>
               </Animated.View>
             </TapGestureHandler>
-
           </Animated.View>
         </PanGestureHandler>
         <BackButton />

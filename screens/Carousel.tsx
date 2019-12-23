@@ -411,8 +411,6 @@ class Carousel extends Component<Props> {
     )
   }
 
-  velocity = new Value(0)
-
   componentDidMount() {
     this.willBlurSub = this.props.navigation.addListener('willBlur', () => {
       this._mounted.setValue(0)

@@ -142,29 +142,40 @@ class CardStack extends Component {
     }]
     )
 
+    const resetSpring = [
+      set(this.sprState.time, 0),
+      set(this.sprState.position, 0),
+      set(this.sprState.finished, 0),
+      set(this.sprState.velocity, 0),
+      set(this.prevTrans, add(this._tempOffset, this.prevTrans)),
+    ]
+
+
+    const runClock = cond(clockRunning(this.clock), [
+      spring(this.clock, this.sprState, this.sprConfig),
+      cond(eq(this.sprState.finished, 1), [
+        resetSpring,
+        stopClock(this.clock),
+      ]),
+      cond(not(this._mounted), stopClock(this.clock))
+    ])
+
+    const iosConfig = {
+      inputRange: [0, 0.5, 1, 2, numCards],
+      outputRange: [60, 0, 80, 70, 60],
+    }
+
+    const androidConfig = {
+      inputRange: [0, 0.5, 1, 2, numCards],
+      outputRange: [70, 0, 35, 50, 70],
+    }
+
+
     this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
       const colorMultiplier = 255 / (arr.length - 1)
       const index = new Value(i)
       const size = width * 0.75
       const gestureState = new Value(0)
-
-      const resetSpring = [
-        set(this.sprState.time, 0),
-        set(this.sprState.position, 0),
-        set(this.sprState.finished, 0),
-        set(this.sprState.velocity, 0),
-        set(this.prevTrans, add(this._tempOffset, this.prevTrans)),
-      ]
-
-      const runClock = cond(clockRunning(this.clock), [
-        spring(this.clock, this.sprState, this.sprConfig),
-        cond(eq(this.sprState.finished, 1), [
-          resetSpring,
-          stopClock(this.clock),
-        ]),
-        cond(not(this._mounted), stopClock(this.clock))
-      ])
-
       const scale = new Value(1)
       const interpolatedY = Animated.interpolate(this.cumulativeTrans, {
         inputRange: [-tickHeight, 0, tickHeight],
@@ -183,15 +194,6 @@ class CardStack extends Component {
 
       const translateY = indexToTrans
 
-      const iosConfig = {
-        inputRange: [0, 0.5, 1, 2, arr.length],
-        outputRange: [60, 0, 80, 70, 60],
-      }
-
-      const androidConfig = {
-        inputRange: [0, 0.5, 1, 2, arr.length],
-        outputRange: [70, 0, 35, 50, 70],
-      }
 
       const rotateX = Animated.concat(
         Animated.interpolate(transToIndex, isAndroid ? androidConfig : iosConfig), 'deg')

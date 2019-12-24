@@ -41,88 +41,94 @@ const colorMultiplier = 255 / maxIndex
 
 class Card extends Component {
 
-  startIndexY: Animated.Value<number>
-  translationX: Animated.Value<number>
-  translationY: Animated.Value<number>
-  prevX: Animated.Value<number>
-  prevY: Animated.Value<number>
-  gestureState: Animated.Value<State>
-  tapState: Animated.Value<State>
-  _cx: Animated.Node<number>
-  _cy: Animated.Node<number>
-  _ix: Animated.Node<number>
-  _iy: Animated.Node<number>
-  indexX: Animated.Node<number>
   indexY: Animated.Node<number>
-  index: Animated.Node<number>
-  targetX: Animated.Node<number>
-  targetY: Animated.Node<number>
-  _mx: Animated.Node<number>
-  _my: Animated.Node<number>
-  _isInverted: Animated.Node<number>
-  rotateX: Animated.Node<string>
-  rotateY: Animated.Node<string>
   color: Animated.Node<number>
-  perspective: Animated.Value<number>
-  springState: Animated.SpringState
-  springConfig: Animated.SpringConfig
-  tapSpr: Animated.SpringState
-  tapCfg: Animated.SpringConfig
-  clock: Animated.Clock
-  tapClock: Animated.Clock
-  diffX: Animated.Value<number>
-  diffY: Animated.Value<number>
-  _px: Animated.Value<number>
-  _py: Animated.Value<number>
   _x: Animated.Node<number>
   _y: Animated.Node<number>
   runClock: Animated.Node<number>
   scale: Animated.Node<number>
   shadowScale: Animated.Node<number>
 
+  startIndexY: Animated.Value<number> = new Value(0)
+  translationX: Animated.Value<number> = new Value(0)
+  translationY: Animated.Value<number> = new Value(0)
+  gestureState: Animated.Value<State> = new Value(State.UNDETERMINED)
+  tapState: Animated.Value<State> = new Value(State.UNDETERMINED)
+  perspective: Animated.Value<number> = new Value(850)
+  springState: Animated.SpringState = {
+    finished: new Value(0),
+    velocity: new Value(0),
+    position: new Value(0),
+    time: new Value(0),
+  }
+  springConfig: Animated.SpringConfig = {
+    damping: 8,
+    mass: 1,
+    stiffness: 50.296,
+    overshootClamping: false,
+    toValue: new Value(1),
+    restSpeedThreshold: 0.001,
+    restDisplacementThreshold: 0.001,
+  }
+  tapSpr: Animated.SpringState = {
+    finished: new Value(0),
+    velocity: new Value(0),
+    position: new Value(0),
+    time: new Value(0),
+  }
+  tapCfg: Animated.SpringConfig = {
+    damping: 12,
+    mass: 1,
+    stiffness: 100,
+    overshootClamping: false,
+    toValue: new Value(1),
+    restSpeedThreshold: 0.01,
+    restDisplacementThreshold: 0.01,
+  }
+  clock: Animated.Clock = new Clock()
+  tapClock: Animated.Clock = new Clock()
 
   constructor(props) {
     super(props)
-    this.startIndexY = new Value(0)
+    const prevX = new Value(0)
+    const prevY = new Value(0)
+    const px = new Value(0)
+    const py = new Value(0)
+    const diffX = new Value(0)
+    const diffY = new Value(0)
 
-    this.translationX = new Value(0)
-    this.translationY = new Value(0)
-    this.gestureState = new Value(State.UNDETERMINED)
-    this.tapState = new Value(State.UNDETERMINED)
-    this.prevX = new Value(0)
-    this.prevY = new Value(0)
+    const cumulativeY = add(prevY, this.translationY)
+    const cumulativeX = add(prevX, this.translationX)
 
-    this._cy = add(this.prevY, this.translationY)
-    this._cx = add(this.prevX, this.translationX)
-
-    this._iy = Animated.interpolate(this._cy, {
+    const sizeInterpolatedY = Animated.interpolate(cumulativeY, {
       inputRange: [-size, 0, size],
       outputRange: [180, 0, -180],
     })
 
-    this._ix = Animated.interpolate(this._cx, {
+    const sizeInterpolatedX = Animated.interpolate(cumulativeX, {
       inputRange: [-size, 0, size],
       outputRange: [-180, 0, 180],
     })
 
-    this.indexX = floor(divide(add(this._ix, 90), 180))
-    this.indexY = floor(divide(add(this._iy, 90), 180))
-    this.index = add(this.indexX, this.indexY)
+    const indexX = floor(divide(add(sizeInterpolatedX, 90), 180))
+    const indexY = floor(divide(add(sizeInterpolatedY, 90), 180))
+    this.indexY = indexY
+    const index = add(indexX, indexY)
 
-    this.targetX = multiply(size, this.indexX)
-    this.targetY = multiply(size, this.indexY, -1)
+    const targetX = multiply(size, indexX)
+    const targetY = multiply(size, indexY, -1)
 
-    this._mx = sub(modulo(add(this._ix, 90), 180), 90)
-    this._my = sub(modulo(add(this._iy, 90), 180), 90)
+    const modX = sub(modulo(add(sizeInterpolatedX, 90), 180), 90)
+    const modY = sub(modulo(add(sizeInterpolatedY, 90), 180), 90)
 
-    this._isInverted = modulo(sub(this.startIndexY, this.indexY), 2)
+    const isInverted = modulo(sub(this.startIndexY, indexY), 2)
 
-    this.rotateX = Animated.concat(this._my, 'deg')
-    this.rotateY = Animated.concat([
-      cond(this._isInverted, multiply(this._mx, -1), this._mx),
+    const rotateX = Animated.concat(modY, 'deg')
+    const rotateY = Animated.concat([
+      cond(isInverted, multiply(modX, -1), modX),
     ], 'deg')
 
-    const colorIndex = sub(maxIndex, modulo(add(this.index, maxIndex), numCards))
+    const colorIndex = sub(maxIndex, modulo(add(index, maxIndex), numCards))
 
     const c = multiply(colorIndex, colorMultiplier)
     const r = round(c)
@@ -130,48 +136,7 @@ class Card extends Component {
     const b = round(sub(255, c))
     this.color = color(r, g, b)
 
-    this.perspective = new Value(850)
-
-    this.springState = {
-      finished: new Value(0),
-      velocity: new Value(0),
-      position: new Value(0),
-      time: new Value(0),
-    };
-
-    this.springConfig = {
-      damping: 8,
-      mass: 1,
-      stiffness: 50.296,
-      overshootClamping: false,
-      toValue: new Value(1),
-      restSpeedThreshold: 0.001,
-      restDisplacementThreshold: 0.001,
-    };
-
-    this.tapSpr = {
-      finished: new Value(0),
-      velocity: new Value(0),
-      position: new Value(0),
-      time: new Value(0),
-    };
-
-    this.tapCfg = {
-      damping: 12,
-      mass: 1,
-      stiffness: 100,
-      overshootClamping: false,
-      toValue: new Value(1),
-      restSpeedThreshold: 0.01,
-      restDisplacementThreshold: 0.01,
-    };
-
-    this.clock = new Clock()
-    this.tapClock = new Clock()
-
-    const isActive = [
-      cond(eq(this.gestureState, State.ACTIVE), 1, 0)
-    ]
+    const isActive = eq(this.gestureState, State.ACTIVE)
 
     const reset = [
       set(this.translationX, 0),
@@ -197,26 +162,21 @@ class Card extends Component {
       ])
     ]
 
-    this.diffX = new Value(0)
-    this.diffY = new Value(0)
-    this._px = new Value(0)
-    this._py = new Value(0)
-
     const startClockIfStopped = [
       cond(clockRunning(this.clock), 0, [
-        set(this.prevY, add(this.prevY, this.translationY)),
-        set(this.prevX, add(this.prevX, this.translationX)),
+        set(prevY, add(prevY, this.translationY)),
+        set(prevX, add(prevX, this.translationX)),
 
         // NOTE: Order seems to matter for Android -- resetting translation
         // at the end of this block breaks android.
         set(this.translationX, 0),
         set(this.translationY, 0),
 
-        set(this._px, this.prevX),
-        set(this._py, this.prevY),
+        set(px, prevX),
+        set(py, prevY),
 
-        set(this.diffX, sub(this.targetX, this.prevX)),
-        set(this.diffY, sub(this.targetY, this.prevY)),
+        set(diffX, sub(targetX, prevX)),
+        set(diffY, sub(targetY, prevY)),
 
         startClock(this.clock)
       ]
@@ -230,15 +190,15 @@ class Card extends Component {
         startClockIfStopped,
         cond(clockRunning(this.clock), [
           spring(this.clock, this.springState, this.springConfig),
-          set(this.prevX, add(this._px, multiply(this.diffX, this.springState.position))),
-          set(this.prevY, add(this._py, multiply(this.diffY, this.springState.position))),
+          set(prevX, add(px, multiply(diffX, this.springState.position))),
+          set(prevY, add(py, multiply(diffY, this.springState.position))),
         ]),
         stopClockIfFinished,
       ]),
-      this.rotateX,
+      rotateX,
     ])
 
-    this._y = this.rotateY
+    this._y = rotateY
 
     this.runClock = [
       cond(clockRunning(this.tapClock), [

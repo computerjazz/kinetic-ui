@@ -43,6 +43,11 @@ const screens = [
     Preview: CarouselPreview,
   },
   {
+    title: 'Grid',
+    screen: 'Grid',
+    Preview: GridPreview,
+  },
+  {
     title: "Book",
     screen: "Book",
     Preview: BookPreview,
@@ -58,12 +63,6 @@ const screens = [
     screen: 'Flip',
     Preview: FlipPreview,
   },
-  {
-    title: 'Grid',
-    screen: 'Grid',
-    Preview: GridPreview,
-  },
-
 ]
 
 type Props = {

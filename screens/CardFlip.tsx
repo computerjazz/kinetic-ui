@@ -29,6 +29,7 @@ const {
   abs,
   modulo,
   round,
+  onChange,
 } = Animated;
 
 import BackButton from '../components/BackButton'
@@ -137,8 +138,12 @@ class Card extends Component {
     this.color = color(r, g, b)
 
     const isActive = eq(this.gestureState, State.ACTIVE)
+    const diff = new Value(0)
+    const rawX = new Value(0)
 
     const reset = [
+      set(diff, 0),
+      set(rawX, 0),
       set(this.translationX, 0),
       set(this.translationY, 0),
       set(this.springState.position, 0),
@@ -170,6 +175,8 @@ class Card extends Component {
         // NOTE: Order seems to matter for Android -- resetting translation
         // at the end of this block breaks android.
         set(this.translationX, 0),
+        set(diff, 0),
+        set(rawX, 0),
         set(this.translationY, 0),
 
         set(px, prevX),
@@ -223,18 +230,24 @@ class Card extends Component {
       inputRange: [0, 0.5, 1],
       outputRange: [1, .95, 1],
     })
-  }
 
-
-  onPanGestureEvent = event([{
-    nativeEvent: ({ translationX: x, translationY: y }) => block([
-      cond(eq(this.gestureState, State.ACTIVE), [
-        set(this.translationX, x),
-        set(this.translationY, y),
+    this.onPanGestureEvent = event([{
+      nativeEvent: ({ translationX: x, translationY: y }) => block([
+        cond(eq(this.gestureState, State.ACTIVE), [
+          set(diff, sub(rawX, x)),
+          set(rawX, x),
+          set(this.translationX, 
+            cond(isInverted, 
+              add(this.translationX, diff), 
+              sub(this.translationX, diff)
+          )),
+          set(this.translationY, y),
+        ])
       ])
+    }
     ])
+
   }
-  ])
 
   onPanStateChange = event([{
     nativeEvent: ({ state }) => block([

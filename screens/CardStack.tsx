@@ -1,7 +1,7 @@
 import React, { Component } from 'react'
 import { View, Dimensions, Platform, SafeAreaView } from 'react-native'
 import Animated from 'react-native-reanimated';
-import { PanGestureHandler, State, TapGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent } from 'react-native-gesture-handler';
+import { PanGestureHandler, State, TapGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, TapGestureHandlerStateChangeEvent } from 'react-native-gesture-handler';
 import BackButton from '../components/BackButton'
 
 const { width, height } = Dimensions.get('window');
@@ -30,14 +30,26 @@ const {
   Clock,
   event,
   modulo,
+  interpolate,
 } = Animated;
 
 const numCards = 7
 const tickHeight = height * 0.75
 const flingThresh = 500
 
+type Card = {
+  color: string,
+  rotateX: Animated.Node<string>
+  zIndex: Animated.Node<number>
+  scale: Animated.Node<number>
+  translateY: Animated.Node<number>
+  size: number
+  onTapStateChange: (e: TapGestureHandlerStateChangeEvent) => void
+}
+
 class CardStack extends Component {
 
+  cards: Card[]
   _mounted: Animated.Value<number>
   mainHandler: React.RefObject<PanGestureHandler>
   translationY: Animated.Value<number>
@@ -47,8 +59,21 @@ class CardStack extends Component {
   perspective: Animated.Value<number>
   auto: Animated.Value<number>
   clock: Animated.Clock
-  sprState: Animated.SpringState
-  sprConfig: Animated.SpringConfig
+  sprState: Animated.SpringState = {
+    finished: new Value(0),
+    velocity: new Value(0),
+    position: new Value(0),
+    time: new Value(0),
+  }
+  sprConfig: Animated.SpringConfig = {
+    damping: 20,
+    mass: 0.3,
+    stiffness: 30,
+    overshootClamping: false,
+    toValue: new Value(0),
+    restSpeedThreshold: 0.001,
+    restDisplacementThreshold: 0.001,
+  }
   _tempOffset: Animated.Value<number>
   activeIndex: Animated.Node<number>
 
@@ -65,23 +90,6 @@ class CardStack extends Component {
     this.auto = new Value(0)
     this.clock = new Clock()
     this._mounted = new Value(1)
-
-    this.sprState = {
-      finished: new Value(0),
-      velocity: new Value(0),
-      position: new Value(0),
-      time: new Value(0),
-    }
-
-    this.sprConfig = {
-      damping: 20,
-      mass: 0.3,
-      stiffness: 30,
-      overshootClamping: false,
-      toValue: new Value(0),
-      restSpeedThreshold: 0.001,
-      restDisplacementThreshold: 0.001,
-    }
 
     this._tempOffset = new Value(0)
     this.cumulativeTrans = add(this.prevTrans, this.translationY, this.sprState.position)
@@ -150,7 +158,6 @@ class CardStack extends Component {
       set(this.prevTrans, add(this._tempOffset, this.prevTrans)),
     ]
 
-
     const runClock = cond(clockRunning(this.clock), [
       spring(this.clock, this.sprState, this.sprConfig),
       cond(eq(this.sprState.finished, 1), [
@@ -159,6 +166,8 @@ class CardStack extends Component {
       ]),
       cond(not(this._mounted), stopClock(this.clock))
     ])
+
+    const size = width * 0.75
 
     const iosConfig = {
       inputRange: [0, 0.5, 1, 2, numCards],
@@ -170,48 +179,44 @@ class CardStack extends Component {
       outputRange: [70, 0, 35, 50, 70],
     }
 
-
     this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
-      const colorMultiplier = 255 / (arr.length - 1)
+      const colorMultiplier = 255 / (numCards - 1)
       const index = new Value(i)
-      const size = width * 0.75
       const gestureState = new Value(0)
+
       const scale = new Value(1)
-      const interpolatedY = Animated.interpolate(this.cumulativeTrans, {
+
+      const transToIndex = modulo(interpolate(this.cumulativeTrans, {
         inputRange: [-tickHeight, 0, tickHeight],
         outputRange: [sub(index, 1), index, add(index, 1)],
-      })
+      }), numCards)
 
-      const transToIndex = modulo(interpolatedY, arr.length)
-
-      const indexToTrans = sub(Animated.interpolate([
+      const translateY = sub(Animated.interpolate([
         runClock,
         transToIndex,
       ], {
-        inputRange: [0, 0.5, 0.75, 1, arr.length],
+        inputRange: [0, 0.5, 0.75, 1, numCards],
         outputRange: [0, size, size * 1.9, size * 1.25, 0],
       }), 60)
-
-      const translateY = indexToTrans
 
 
       const rotateX = Animated.concat(
         Animated.interpolate(transToIndex, isAndroid ? androidConfig : iosConfig), 'deg')
 
       const scaleXY = Animated.interpolate(transToIndex, {
-        inputRange: [0, 0.25, 0.5, 1, arr.length],
+        inputRange: [0, 0.25, 0.5, 1, numCards],
         outputRange: [scale, multiply(scale, 1.2), multiply(scale, 1.24), divide(scale, 2), scale],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
 
       const zIndex = Animated.interpolate(transToIndex, {
-        inputRange: [0, 0.7, 0.75, 1, arr.length],
+        inputRange: [0, 0.7, 0.75, 1, numCards],
         outputRange: [999, 999, 0, 0, 200],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
 
       // Somehow the top of the stack ended up as index 0
-      // but the next item down is arr.length - 1
+      // but the next item down is numCards - 1
       // for example, indices would go
       // 0
       // 4
@@ -219,8 +224,8 @@ class CardStack extends Component {
       // 2
       // 1
       // `colorIndex` compensates for this
-      const maxIndex = arr.length - 1
-      const colorIndex = maxIndex - (i + maxIndex) % (arr.length)
+      const maxIndex = numCards - 1
+      const colorIndex = maxIndex - (i + maxIndex) % numCards
       const onTapStateChange = event([
         {
           nativeEvent: ({ state }) => block([

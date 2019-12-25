@@ -41,11 +41,10 @@ export default class App extends Component {
 
   render() {
     return (
-      <React.Fragment>
+      <>
         <StatusBar hidden />
-
-      <Navigator persistenceKey="app" />
-      </React.Fragment>
+        <Navigator persistenceKey="app" />
+      </>
     );
   }
 }

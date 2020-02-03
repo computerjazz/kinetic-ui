@@ -6,7 +6,8 @@ import BackButton from '../components/BackButton'
 
 const { width, height } = Dimensions.get('window');
 const isAndroid = Platform.OS === 'android'
-
+import spring from '../procs/springFill'
+import procs from '../procs/stack'
 const {
   and,
   not,
@@ -19,7 +20,6 @@ const {
   multiply,
   greaterThan,
   lessThan,
-  spring,
   divide,
   block,
   startClock,
@@ -31,6 +31,7 @@ const {
   event,
   modulo,
   interpolate,
+  concat,
 } = Animated;
 
 const numCards = 7
@@ -93,6 +94,7 @@ class CardStack extends Component {
 
     this._tempOffset = new Value(0)
     this.cumulativeTrans = add(this.prevTrans, this.translationY, this.sprState.position)
+    const { time, position, finished, velocity } = this.sprState
 
     this.activeIndex = Animated.interpolate(modulo(this.cumulativeTrans, tickHeight * numCards), {
       inputRange: [0, tickHeight],
@@ -100,12 +102,7 @@ class CardStack extends Component {
     })
 
     this.onPanGestureEvent = event([{
-      nativeEvent: ({ translationY: y, velocityY }) => block([
-        cond(eq(this.gestureState, State.ACTIVE), [
-          set(this.translationY, y),
-          set(this.velocity, velocityY),
-        ])
-      ])
+      nativeEvent: ({ translationY: y, velocityY }) => procs.onPanGestureEvent(this.gestureState, this.translationY, y, this.velocity, velocityY)
     }])
 
     this.onPanStateChange = event([{
@@ -113,35 +110,19 @@ class CardStack extends Component {
         cond(and(eq(state, State.ACTIVE), clockRunning(this.clock)), [
           stopClock(this.clock),
           set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
-          set(this.sprState.position, 0),
-          set(this.sprState.time, 0),
-          set(this.sprState.velocity, 0),
-          set(this.sprState.finished, 0),
+          procs.resetSpring(time, position, finished, velocity),
         ]),
 
-        cond(and(neq(this.gestureState, State.END), eq(state, State.END)), [
+        cond(procs.gestureIsEnded(this.gestureState, state), [
           set(this.prevTrans, add(this.translationY, this.prevTrans)),
-
-          // if translate amt is greater than tickHeight / 2 or is fling gesture
-          // snap to next index, otherwise snap back to current index
-          set(this.sprConfig.toValue, cond(
-            [
-              or(
-                greaterThan(this.velocity, flingThresh), // Fling down
-                and(
-                  not(lessThan(this.velocity, -flingThresh)), // Fling up
-                  greaterThan(modulo(this.prevTrans, tickHeight), tickHeight / 2),
-                )
-              )
-            ],
-            [
-              // snap to next index
-              set(this._tempOffset, sub(tickHeight, modulo(this.prevTrans, tickHeight))),
-            ], [
-            // snap to current index
-            set(this._tempOffset, multiply(modulo(this.prevTrans, tickHeight), -1)),
-          ])
-          ),
+          procs.setSprConfig(
+            this.sprConfig.toValue,
+            this.velocity,
+            flingThresh,
+            this.prevTrans,
+            tickHeight,
+            this._tempOffset,
+            ),
           startClock(this.clock),
           set(this.translationY, 0),
         ]),
@@ -149,23 +130,6 @@ class CardStack extends Component {
       ])
     }]
     )
-
-    const resetSpring = [
-      set(this.sprState.time, 0),
-      set(this.sprState.position, 0),
-      set(this.sprState.finished, 0),
-      set(this.sprState.velocity, 0),
-      set(this.prevTrans, add(this._tempOffset, this.prevTrans)),
-    ]
-
-    const runClock = cond(clockRunning(this.clock), [
-      spring(this.clock, this.sprState, this.sprConfig),
-      cond(eq(this.sprState.finished, 1), [
-        resetSpring,
-        stopClock(this.clock),
-      ]),
-      cond(not(this._mounted), stopClock(this.clock))
-    ])
 
     const size = width * 0.75
 
@@ -185,35 +149,11 @@ class CardStack extends Component {
       const gestureState = new Value(0)
 
       const scale = new Value(1)
-
-      const transToIndex = modulo(interpolate(this.cumulativeTrans, {
-        inputRange: [-tickHeight, 0, tickHeight],
-        outputRange: [sub(index, 1), index, add(index, 1)],
-      }), numCards)
-
-      const translateY = sub(Animated.interpolate([
-        runClock,
-        transToIndex,
-      ], {
-        inputRange: [0, 0.5, 0.75, 1, numCards],
-        outputRange: [0, size, size * 1.9, size * 1.25, 0],
-      }), 60)
-
-
-      const rotateX = Animated.concat(
-        Animated.interpolate(transToIndex, isAndroid ? androidConfig : iosConfig), 'deg')
-
-      const scaleXY = Animated.interpolate(transToIndex, {
-        inputRange: [0, 0.25, 0.5, 1, numCards],
-        outputRange: [scale, multiply(scale, 1.2), multiply(scale, 1.24), divide(scale, 2), scale],
-        extrapolate: Animated.Extrapolate.CLAMP,
-      })
-
-      const zIndex = Animated.interpolate(transToIndex, {
-        inputRange: [0, 0.7, 0.75, 1, numCards],
-        outputRange: [999, 999, 0, 0, 200],
-        extrapolate: Animated.Extrapolate.CLAMP,
-      })
+      const transToIndex = procs.transToIndex(this.cumulativeTrans, tickHeight, index, numCards)
+      const translateY = procs.indexToTrans(transToIndex, numCards, size)
+      const rotateX = concat(interpolate(transToIndex, isAndroid ? androidConfig : iosConfig), 'deg')
+      const scaleXY = procs.scaleXY(transToIndex, numCards, scale)
+      const zIndex = procs.zIndex(transToIndex, numCards)
 
       // Somehow the top of the stack ended up as index 0
       // but the next item down is numCards - 1
@@ -226,6 +166,7 @@ class CardStack extends Component {
       // `colorIndex` compensates for this
       const maxIndex = numCards - 1
       const colorIndex = maxIndex - (i + maxIndex) % numCards
+
       const onTapStateChange = event([
         {
           nativeEvent: ({ state }) => block([
@@ -233,26 +174,9 @@ class CardStack extends Component {
               cond(clockRunning(this.clock), [
                 stopClock(this.clock),
                 set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
-                set(this.sprState.position, 0),
-                set(this.sprState.time, 0),
-                set(this.sprState.velocity, 0),
-                set(this.sprState.finished, 0),
+                procs.resetSpring(time, position, finished, velocity)
               ]),
-
-              // Go forward or backward to tapped card
-              // depending on which requires fewer moves
-              set(this.diffIndex, [
-                cond(lessThan(
-                  modulo(sub(colorIndex, this.activeIndex), numCards),
-                  modulo(sub(this.activeIndex, colorIndex), numCards)
-                ), [
-                  // Go forward
-                  modulo(sub(colorIndex, this.activeIndex), numCards),
-                ], [
-                  // Go backwards
-                  multiply(modulo(sub(this.activeIndex, colorIndex), numCards), -1),
-                ])
-              ]),
+              procs.setDiffIndex(this.diffIndex, this.activeIndex, colorIndex, numCards),
               set(this.diffTrans, multiply(tickHeight, this.diffIndex)),
               set(this.sprConfig.toValue, this.diffTrans),
               set(this._tempOffset, this.diffTrans),
@@ -343,6 +267,18 @@ class CardStack extends Component {
           </PanGestureHandler>
         </SafeAreaView>
         <BackButton />
+        <Animated.Code>
+          {() => cond(clockRunning(this.clock), [
+            spring(this.clock, this.sprState, this.sprConfig),
+            cond(eq(this.sprState.finished, 1), [
+              procs.resetSpring(
+                this.sprState.time, this.sprState.position, this.sprState.finished, this.sprState.velocity),
+              set(this.prevTrans, add(this._tempOffset, this.prevTrans)),
+              stopClock(this.clock),
+            ]),
+            cond(not(this._mounted), stopClock(this.clock))
+          ])}
+        </Animated.Code>
       </View>
     )
   }

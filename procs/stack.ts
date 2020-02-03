@@ -149,6 +149,13 @@ const onPanGestureEvent = proc((
   set(velocity, velocityY),
 ]))
 
+const getActiveIndex = proc((cumulativeTrans, tickHeight, numCards) => interpolate(modulo(cumulativeTrans, multiply(tickHeight, numCards)), {
+  inputRange: [0, tickHeight],
+  outputRange: [0, 1],
+}))
+
+const setPrevTrans = proc((prevTrans, position) => set(prevTrans, add(prevTrans, position)))
+
 export default {
   zIndex,
   scaleXY,
@@ -159,4 +166,6 @@ export default {
   setSprConfig,
   gestureIsEnded,
   onPanGestureEvent,
+  getActiveIndex,
+  setPrevTrans,
 }

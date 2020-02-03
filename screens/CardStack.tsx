@@ -85,10 +85,7 @@ class CardStack extends Component {
   velocity = new Value(0)
 
   cumulativeTrans: Animated.Node<number> = add(this.prevTrans, this.translationY, this.sprState.position)
-  activeIndex: Animated.Node<number> = interpolate(modulo(this.cumulativeTrans, tickHeight * numCards), {
-    inputRange: [0, tickHeight],
-    outputRange: [0, 1],
-  })
+  activeIndex: Animated.Node<number> = procs.getActiveIndex(this.cumulativeTrans, tickHeight, numCards)
 
   onPanGestureEvent = event([{
     nativeEvent: ({ translationY: y, velocityY }) => procs.onPanGestureEvent(this.gestureState, this.translationY, y, this.velocity, velocityY)
@@ -146,10 +143,10 @@ class CardStack extends Component {
     const onTapStateChange = event([
       {
         nativeEvent: ({ state }) => block([
-          cond(and(eq(state, State.END), neq(gestureState, State.END)), [
+          cond(procs.gestureIsEnded(gestureState, state), [
             cond(clockRunning(this.clock), [
               stopClock(this.clock),
-              set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
+              procs.setPrevTrans(this.prevTrans, this.sprState.position),
               procs.resetSpring(this.sprState.time, this.sprState.position, this.sprState.finished, this.sprState.velocity)
             ]),
             procs.setDiffIndex(this.diffIndex, this.activeIndex, colorIndex, numCards, this.diffTrans, tickHeight, this.sprConfig.toValue, this._tempOffset),
@@ -237,7 +234,7 @@ class CardStack extends Component {
         <Animated.Code>
           {() => cond(clockRunning(this.clock), [
             spring(this.clock, this.sprState, this.sprConfig),
-            cond(eq(this.sprState.finished, 1), [
+            cond(this.sprState.finished, [
               procs.resetSpring(
                 this.sprState.time, this.sprState.position, this.sprState.finished, this.sprState.velocity),
               set(this.prevTrans, add(this._tempOffset, this.prevTrans)),

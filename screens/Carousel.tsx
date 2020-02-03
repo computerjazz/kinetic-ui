@@ -1,11 +1,14 @@
 import React, { Component } from 'react'
-import { View, Dimensions, Text } from 'react-native'
+import { View, Dimensions } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler, TapGestureHandlerStateChangeEvent, PanGestureHandlerStateChangeEvent, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 
 const { width } = Dimensions.get('window');
 import spring from '../procs/springFill'
 import procs from '../procs/carousel'
+
+import { NavigationStackScreenProps } from 'react-navigation'
+
 const {
   debug,
   onChange,
@@ -18,23 +21,17 @@ const {
   or,
   add,
   multiply,
-  lessThan,
-  interpolate,
   greaterThan,
   timing,
   block,
   startClock,
   stopClock,
   clockRunning,
-  sub,
   Value,
   Clock,
   event,
-  sin,
-  modulo,
   abs,
   diff,
-  min,
 } = Animated;
 
 import BackButton from '../components/BackButton'
@@ -45,12 +42,11 @@ const size = width * 0.8
 const maxIndex = numCards - 1
 const colorMultiplier = 255 / maxIndex
 
-interface Props {
-  navigation: any
-}
+type Props = NavigationStackScreenProps<any>
 
 class Carousel extends Component<Props> {
 
+  willBlurSub
   mainHandler = React.createRef<PanGestureHandler>()
   translationX = new Value<number>(0)
   prevTrans = new Value<number>(0)
@@ -195,27 +191,89 @@ class Carousel extends Component<Props> {
     const zIndex = procs.getZIndex(transToIndex, arr.length)
     const translateY = 0
 
-    return {
-      color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
-      scale: scaleXY,
-      zIndex,
-      translateX,
-      translateY,
-      size,
+    const onHandlerStateChange = event([{
+      nativeEvent: ({ state }) => block([
+        cond(
+          and(neq(state, State.ACTIVE), eq(cardGestureState, State.ACTIVE)), [
+          startClock(cardClock),
+        ]),
+        cond(and(eq(state, State.ACTIVE), clockRunning(cardClock)), [
+          stopClock(cardClock),
+          set(cardState.position, 1),
+          procs.reset4(cardState.finished, cardState.time, cardState.velocity, cardTransY),
+        ]),
+        set(cardGestureState, state),
+      ])
+    }])
+
+    const onGestureEvent = event([{
+      nativeEvent: ({ translationY }) => block([
+        cond(eq(cardGestureState, State.ACTIVE), [
+          set(cardTransY, translationY),
+        ])
+      ])
+    }])
+    
+    const innerTransform = [{
+      perspective: this.perspective,
+      translateY: cond(clockRunning(cardClock), [
+        spring(cardClock, cardState, cardConfig),
+        multiply(add(translateY, cardTransY), cardState.position),
+      ], add(translateY, cardTransY)),
       rotateY,
       rotateX,
-      index: i,
+    }]
+
+    const outerTransform = [{
       perspective: this.perspective,
+      translateX,
+      scaleX: scaleXY,
+      scaleY: scaleXY,
+    }]
+
+    const outerStyle = {
+      zIndex,
+      position: 'absolute',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: size / 4,
+      height: size,
+      transform: outerTransform,
+    }
+
+    const color = `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`
+
+    const innerStyle = {
+      position: 'absolute',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: size / 4,
+      height: size,
+      backgroundColor: color,
+      borderRadius: 10,
+      zIndex,
+      transform: innerTransform
+    }
+
+    const runCode = () => cond(and(clockRunning(cardClock), cardState.finished), [
+      stopClock(cardClock),
+      set(cardState.position, 1),
+      procs.reset4(cardState.finished, cardState.time, cardState.velocity, cardTransY)
+    ])
+
+    return {
       handlerRef: React.createRef(),
-      cardState,
-      cardConfig,
-      cardTransY,
-      cardClock,
-      cardGestureState,
+      onHandlerStateChange,
+      onGestureEvent,
+      innerTransform,
+      outerTransform,
+      outerStyle, 
+      innerStyle,
+      runCode,
     }
   })
 
-  renderCard = ({ handlerRef, cardTransY, cardClock, cardState, cardConfig, cardGestureState, color, scale, translateX, translateY, zIndex, rotateY, rotateX, size, perspective }, i) => {
+  renderCard = ({ handlerRef, onHandlerStateChange, onGestureEvent, outerStyle, innerStyle, runCode }, i) => {
     // @NOTE: PanGestureHandler should not directly wrap an element that can rotate completely on edge.
     // this causes values to go to infinity.
     return (
@@ -223,69 +281,15 @@ class Carousel extends Component<Props> {
         key={`card-${i}`}
         ref={handlerRef}
         simultaneousHandlers={this.mainHandler}
-        onGestureEvent={event([{
-          nativeEvent: ({ translationY, state }) => block([
-            cond(eq(cardGestureState, State.ACTIVE), [
-              set(cardTransY, translationY),
-            ])
-          ])
-        }])}
-        onHandlerStateChange={event([{
-          nativeEvent: ({ state }) => block([
-            cond(
-              and(neq(state, State.ACTIVE), eq(cardGestureState, State.ACTIVE)), [
-              startClock(cardClock),
-            ]),
-            cond(and(eq(state, State.ACTIVE), clockRunning(cardClock)), [
-              stopClock(cardClock),
-              set(cardState.position, 1),
-              procs.reset4(cardState.finished, cardState.time, cardState.velocity, cardTransY),
-            ]),
-            set(cardGestureState, state),
-          ])
-        }])}
+        onGestureEvent={onGestureEvent}
+        onHandlerStateChange={onHandlerStateChange}
       >
-        <Animated.View style={{
-          zIndex,
-          position: 'absolute',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: size / 4,
-          height: size,
-          transform: [{
-            perspective,
-            translateX,
-            scaleX: scale,
-            scaleY: scale,
-          }]
-        }}>
+        <Animated.View style={outerStyle}>
           <Animated.View
-            style={{
-              position: 'absolute',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: size / 4,
-              height: size,
-              backgroundColor: color,
-              borderRadius: 10,
-              zIndex,
-              transform: [{
-                perspective,
-                translateY: cond(clockRunning(cardClock), [
-                    spring(cardClock, cardState, cardConfig),
-                    multiply(add(translateY, cardTransY), cardState.position),
-                  ], add(translateY, cardTransY)),
-                rotateY,
-                rotateX,
-              }]
-            }}
+            style={innerStyle}
           />
           <Animated.Code>
-            {() => cond(and(clockRunning(cardClock), cardState.finished), [
-              stopClock(cardClock),
-              set(cardState.position, 1),
-              procs.reset4(cardState.finished, cardState.time, cardState.velocity, cardTransY)
-            ])}
+            {runCode}
           </Animated.Code>
         </Animated.View>
       </PanGestureHandler>

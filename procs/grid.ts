@@ -2,7 +2,7 @@ import { Dimensions } from 'react-native'
 import Animated from 'react-native-reanimated'
 const { width } = Dimensions.get('window')
 
-let { interpolate, proc, multiply, add, sub } = Animated
+let { interpolate, proc, multiply, add, sub, block, set, abs } = Animated
 
 if (!proc) {
   proc = fn => fn
@@ -65,6 +65,25 @@ export const combinedYProc = proc((centerX, centerY, screenX, screenY, multiplie
   ), pctProc(diffYRatioProc(centerY, screenY)), multiplier)
   )
 
+const setPan = proc((pan, translationX, newTransX, translationY, newTransY) => block([
+  set(pan,
+    add(
+      pan,
+      abs(sub(translationX, newTransX)),
+      abs(sub(translationY, newTransY)),
+    )
+  ),
+  set(translationX, newTransX),
+  set(translationY, newTransY),
+]))
+
+const reset = proc((v1, v2, v3, v4) => block([
+  set(v1, 0),
+  set(v2, 0),
+  set(v3, 0),
+  set(v4, 0)
+]))
+
 export const Procs = {
   rotateY: rotateYProc,
   rotateX: rotateXProc,
@@ -75,4 +94,6 @@ export const Procs = {
   mult: multProc,
   combinedX: combinedXProc,
   combinedY: combinedYProc,
+  setPan,
+  reset,
 }

@@ -85,27 +85,36 @@ const zIndex = proc((
 
 // Go forward or backward to tapped card
 // depending on which requires fewer moves
-const setDiffIndex = (
+const setDiffIndex = proc((
   diffIndex,
   activeIndex,
   colorIndex,
-  numCards
-) => set(diffIndex, [
-  cond(lessThan(
-    modulo(sub(colorIndex, activeIndex), numCards),
-    modulo(sub(activeIndex, colorIndex), numCards)
+  numCards,
+  diffTrans,
+  tickHeight,
+  toValue,
+  tempOffset,
+) => block([
+  set(diffIndex, 
+    cond(lessThan(
+      modulo(sub(colorIndex, activeIndex), numCards),
+      modulo(sub(activeIndex, colorIndex), numCards)
+    ),
+      // Go forward
+      modulo(sub(colorIndex, activeIndex), numCards),
+      // Go backwards
+      multiply(modulo(sub(activeIndex, colorIndex), numCards), -1),
+    )
   ),
-    // Go forward
-    modulo(sub(colorIndex, activeIndex), numCards),
-    // Go backwards
-    multiply(modulo(sub(activeIndex, colorIndex), numCards), -1),
-  )
-])
+  set(diffTrans, multiply(tickHeight, diffIndex)),
+  set(toValue, diffTrans),
+  set(tempOffset, diffTrans),
+]))
 
 
 // if translate amt is greater than tickHeight / 2 or is fling gesture
 // snap to next index, otherwise snap back to current index
-const setSprConfig = (
+const setSprConfig = proc((
   toValue,
   velocity,
   flingThresh,
@@ -117,7 +126,7 @@ const setSprConfig = (
       greaterThan(velocity, flingThresh), // Fling down
       and(
         not(lessThan(velocity, multiply(flingThresh, -1))), // Fling up
-        greaterThan(modulo(prevTrans, tickHeight), tickHeight / 2),
+        greaterThan(modulo(prevTrans, tickHeight), divide(tickHeight, 2)),
       )
     ),
 
@@ -125,10 +134,11 @@ const setSprConfig = (
     set(tempOffset, sub(tickHeight, modulo(prevTrans, tickHeight))),
     // snap to current index
     set(tempOffset, multiply(modulo(prevTrans, tickHeight), -1)),
-  ))
+  )))
 
-const gestureIsEnded = (gestureState, state) => and(neq(gestureState, State.END), eq(state, State.END)) 
-const onPanGestureEvent = (
+const gestureIsEnded = proc((gestureState, state) => and(neq(gestureState, State.END), eq(state, State.END)))
+
+const onPanGestureEvent = proc((
   gestureState,
   translationY,
   y,
@@ -137,7 +147,7 @@ const onPanGestureEvent = (
 ) => cond(eq(gestureState, State.ACTIVE), [
   set(translationY, y),
   set(velocity, velocityY),
-])
+]))
 
 export default {
   zIndex,

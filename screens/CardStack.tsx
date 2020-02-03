@@ -15,17 +15,12 @@ const {
   neq,
   cond,
   eq,
-  or,
   add,
   multiply,
-  greaterThan,
-  lessThan,
-  divide,
   block,
   startClock,
   stopClock,
   clockRunning,
-  sub,
   Value,
   Clock,
   event,
@@ -36,7 +31,17 @@ const {
 
 const numCards = 7
 const tickHeight = height * 0.75
+const size = width * 0.75
 const flingThresh = 500
+const iosConfig = {
+  inputRange: [0, 0.5, 1, 2, numCards],
+  outputRange: [60, 0, 80, 70, 60],
+}
+
+const androidConfig = {
+  inputRange: [0, 0.5, 1, 2, numCards],
+  outputRange: [70, 0, 35, 50, 70],
+}
 
 type Card = {
   color: string,
@@ -50,16 +55,6 @@ type Card = {
 
 class CardStack extends Component {
 
-  cards: Card[]
-  _mounted: Animated.Value<number>
-  mainHandler: React.RefObject<PanGestureHandler>
-  translationY: Animated.Value<number>
-  prevTrans: Animated.Value<number>
-  cumulativeTrans: Animated.Node<number>
-  gestureState: Animated.Value<State>
-  perspective: Animated.Value<number>
-  auto: Animated.Value<number>
-  clock: Animated.Clock
   sprState: Animated.SpringState = {
     finished: new Value(0),
     velocity: new Value(0),
@@ -75,132 +70,106 @@ class CardStack extends Component {
     restSpeedThreshold: 0.001,
     restDisplacementThreshold: 0.001,
   }
-  _tempOffset: Animated.Value<number>
-  activeIndex: Animated.Node<number>
 
-  onPanGestureEvent: (e: PanGestureHandlerGestureEvent) => void
-  onPanStateChange: (e: PanGestureHandlerStateChangeEvent) => void
-
-  constructor(props) {
-    super(props)
-    this.mainHandler = React.createRef()
-    this.translationY = new Value(0)
-    this.prevTrans = new Value(0)
-    this.gestureState = new Value(State.UNDETERMINED)
-    this.perspective = new Value(850)
-    this.auto = new Value(0)
-    this.clock = new Clock()
-    this._mounted = new Value(1)
-
-    this._tempOffset = new Value(0)
-    this.cumulativeTrans = add(this.prevTrans, this.translationY, this.sprState.position)
-    const { time, position, finished, velocity } = this.sprState
-
-    this.activeIndex = Animated.interpolate(modulo(this.cumulativeTrans, tickHeight * numCards), {
-      inputRange: [0, tickHeight],
-      outputRange: [0, 1],
-    })
-
-    this.onPanGestureEvent = event([{
-      nativeEvent: ({ translationY: y, velocityY }) => procs.onPanGestureEvent(this.gestureState, this.translationY, y, this.velocity, velocityY)
-    }])
-
-    this.onPanStateChange = event([{
-      nativeEvent: ({ state }) => block([
-        cond(and(eq(state, State.ACTIVE), clockRunning(this.clock)), [
-          stopClock(this.clock),
-          set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
-          procs.resetSpring(time, position, finished, velocity),
-        ]),
-
-        cond(procs.gestureIsEnded(this.gestureState, state), [
-          set(this.prevTrans, add(this.translationY, this.prevTrans)),
-          procs.setSprConfig(
-            this.sprConfig.toValue,
-            this.velocity,
-            flingThresh,
-            this.prevTrans,
-            tickHeight,
-            this._tempOffset,
-            ),
-          startClock(this.clock),
-          set(this.translationY, 0),
-        ]),
-        set(this.gestureState, state),
-      ])
-    }]
-    )
-
-    const size = width * 0.75
-
-    const iosConfig = {
-      inputRange: [0, 0.5, 1, 2, numCards],
-      outputRange: [60, 0, 80, 70, 60],
-    }
-
-    const androidConfig = {
-      inputRange: [0, 0.5, 1, 2, numCards],
-      outputRange: [70, 0, 35, 50, 70],
-    }
-
-    this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
-      const colorMultiplier = 255 / (numCards - 1)
-      const index = new Value(i)
-      const gestureState = new Value(0)
-
-      const scale = new Value(1)
-      const transToIndex = procs.transToIndex(this.cumulativeTrans, tickHeight, index, numCards)
-      const translateY = procs.indexToTrans(transToIndex, numCards, size)
-      const rotateX = concat(interpolate(transToIndex, isAndroid ? androidConfig : iosConfig), 'deg')
-      const scaleXY = procs.scaleXY(transToIndex, numCards, scale)
-      const zIndex = procs.zIndex(transToIndex, numCards)
-
-      // Somehow the top of the stack ended up as index 0
-      // but the next item down is numCards - 1
-      // for example, indices would go
-      // 0
-      // 4
-      // 3
-      // 2
-      // 1
-      // `colorIndex` compensates for this
-      const maxIndex = numCards - 1
-      const colorIndex = maxIndex - (i + maxIndex) % numCards
-
-      const onTapStateChange = event([
-        {
-          nativeEvent: ({ state }) => block([
-            cond(and(eq(state, State.END), neq(gestureState, State.END)), [
-              cond(clockRunning(this.clock), [
-                stopClock(this.clock),
-                set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
-                procs.resetSpring(time, position, finished, velocity)
-              ]),
-              procs.setDiffIndex(this.diffIndex, this.activeIndex, colorIndex, numCards),
-              set(this.diffTrans, multiply(tickHeight, this.diffIndex)),
-              set(this.sprConfig.toValue, this.diffTrans),
-              set(this._tempOffset, this.diffTrans),
-              startClock(this.clock),
-            ]),
-            set(gestureState, state),
-          ])
-        }
-      ])
-      return {
-        color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
-        scale: scaleXY,
-        zIndex,
-        translateY,
-        size,
-        rotateX,
-        onTapStateChange
-      }
-    })
-  }
-
-
+  _mounted: Animated.Value<number> = new Value(1)
+  mainHandler: React.RefObject<PanGestureHandler> = React.createRef()
+  translationY: Animated.Value<number> = new Value(0)
+  prevTrans: Animated.Value<number> = new Value(0)
   diffIndex = new Value(0)
   diffTrans = new Value(0)
+  gestureState: Animated.Value<State> = new Value(State.UNDETERMINED)
+  perspective: Animated.Value<number> = new Value(850)
+  auto: Animated.Value<number> = new Value(0)
+  clock: Animated.Clock = new Clock()
+  _tempOffset: Animated.Value<number> = new Value(0)
+  velocity = new Value(0)
+
+  cumulativeTrans: Animated.Node<number> = add(this.prevTrans, this.translationY, this.sprState.position)
+  activeIndex: Animated.Node<number> = interpolate(modulo(this.cumulativeTrans, tickHeight * numCards), {
+    inputRange: [0, tickHeight],
+    outputRange: [0, 1],
+  })
+
+  onPanGestureEvent = event([{
+    nativeEvent: ({ translationY: y, velocityY }) => procs.onPanGestureEvent(this.gestureState, this.translationY, y, this.velocity, velocityY)
+  }])
+
+  onPanStateChange = event([{
+    nativeEvent: ({ state }) => block([
+      cond(and(eq(state, State.ACTIVE), clockRunning(this.clock)), [
+        stopClock(this.clock),
+        set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
+        procs.resetSpring(this.sprState.time, this.sprState.position, this.sprState.finished, this.sprState.velocity),
+      ]),
+
+      cond(procs.gestureIsEnded(this.gestureState, state), [
+        set(this.prevTrans, add(this.translationY, this.prevTrans)),
+        procs.setSprConfig(
+          this.sprConfig.toValue,
+          this.velocity,
+          flingThresh,
+          this.prevTrans,
+          tickHeight,
+          this._tempOffset,
+        ),
+        startClock(this.clock),
+        set(this.translationY, 0),
+      ]),
+      set(this.gestureState, state),
+    ])
+  }]
+  )
+
+  cards: Card[] = [...Array(numCards)].fill(0).map((_, i) => {
+    const colorMultiplier = 255 / (numCards - 1)
+    const index = new Value(i)
+    const gestureState = new Value(State.UNDETERMINED)
+    const scale = new Value(1)
+    const transToIndex = procs.transToIndex(this.cumulativeTrans, tickHeight, index, numCards)
+    const translateY = procs.indexToTrans(transToIndex, numCards, size)
+    const rotateX = concat(interpolate(transToIndex, isAndroid ? androidConfig : iosConfig), 'deg')
+    const scaleXY = procs.scaleXY(transToIndex, numCards, scale)
+    const zIndex = procs.zIndex(transToIndex, numCards)
+
+    // Somehow the top of the stack ended up as index 0
+    // but the next item down is numCards - 1
+    // for example, indices would go
+    // 0
+    // 4
+    // 3
+    // 2
+    // 1
+    // `colorIndex` compensates for this
+    const maxIndex = numCards - 1
+    const colorIndex = maxIndex - (i + maxIndex) % numCards
+
+    const onTapStateChange = event([
+      {
+        nativeEvent: ({ state }) => block([
+          cond(and(eq(state, State.END), neq(gestureState, State.END)), [
+            cond(clockRunning(this.clock), [
+              stopClock(this.clock),
+              set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
+              procs.resetSpring(this.sprState.time, this.sprState.position, this.sprState.finished, this.sprState.velocity)
+            ]),
+            procs.setDiffIndex(this.diffIndex, this.activeIndex, colorIndex, numCards, this.diffTrans, tickHeight, this.sprConfig.toValue, this._tempOffset),
+            startClock(this.clock),
+          ]),
+          set(gestureState, state),
+        ])
+      }
+    ])
+
+    return {
+      color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
+      scale: scaleXY,
+      zIndex,
+      translateY,
+      size,
+      rotateX,
+      onTapStateChange
+    }
+  })
 
   renderCard = ({ color, scale, translateY, zIndex, rotateX, size, onTapStateChange }, i) => {
     return (
@@ -232,8 +201,6 @@ class CardStack extends Component {
       </Animated.View>
     )
   }
-
-  velocity = new Value(0)
 
   componentDidMount() {
     this.willBlurSub = this.props.navigation.addListener('willBlur', () => {

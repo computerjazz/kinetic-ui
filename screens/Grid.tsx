@@ -4,6 +4,7 @@ import Animated from 'react-native-reanimated'
 import BackButton from '../components/BackButton'
 import { PanGestureHandler, State, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import { Procs } from '../procs/grid';
+import spring from '../procs/springFill'
 const { width } = Dimensions.get('window')
 
 let {
@@ -13,8 +14,6 @@ let {
   cond,
   eq,
   add,
-  multiply,
-  spring,
   block,
   startClock,
   stopClock,
@@ -96,29 +95,13 @@ class Grid extends React.Component<Props> {
       restDisplacementThreshold: 0.001,
     }
 
-    const runClock = [
-      cond(clockRunning(this.clock), [
-        spring(this.clock, this.sprState, this.sprConfig),
-        cond(this.sprState.finished, [
-          stopClock(this.clock),
-          set(this.sprState.finished, 0),
-          set(this.sprState.velocity, 0),
-          set(this.sprState.time, 0),
-          set(this.sprState.position, 0),
-          set(this.screenX, 0),
-          set(this.screenY, 0),
-        ])
-      ]),
-      this.sprState.position,
-    ]
-
     this.panRatio = interpolate(this.pan, {
       inputRange: [0, engageDist],
       outputRange: [0, 1],
       extrapolate: Animated.Extrapolate.CLAMP,
     })
 
-    const multiplier = min(add(this.panRatio, runClock), 1)
+    const multiplier = min(add(this.panRatio, this.sprState.position), 1)
     const colorMultiplier = 255 / numCards
 
     const t = Date.now()
@@ -153,20 +136,9 @@ class Grid extends React.Component<Props> {
         cond(eq(this.gestureState, State.ACTIVE), [
           cond(clockRunning(this.clock), [
             stopClock(this.clock),
-            set(this.sprState.finished, 0),
-            set(this.sprState.velocity, 0),
-            set(this.sprState.time, 0),
-            set(this.sprState.position, 0),
+            Procs.reset(this.sprState.finished, this.sprState.velocity, this.sprState.time, this.sprState.position),
           ]),
-          set(this.pan,
-            add(
-              this.pan,
-              abs(sub(this.translationX, translationX)),
-              abs(sub(this.translationY, translationY)),
-            )
-          ),
-          set(this.translationX, translationX),
-          set(this.translationY, translationY),
+          Procs.setPan(this.pan, this.translationX, translationX, this.translationY, translationY),
           set(this.screenX, x),
           set(this.screenY, y),
         ])
@@ -233,6 +205,17 @@ class Grid extends React.Component<Props> {
           </View>
         </SafeAreaView>
         <BackButton />
+        <Animated.Code>
+          {() => cond(clockRunning(this.clock), [
+            spring(this.clock, this.sprState, this.sprConfig),
+            cond(this.sprState.finished, [
+              stopClock(this.clock),
+              Procs.reset(this.sprState.finished, this.sprState.velocity, this.sprState.time, this.sprState.position),
+              set(this.screenX, 0),
+              set(this.screenY, 0),
+            ])
+          ])}
+        </Animated.Code>
       </View>
     )
   }

@@ -3,8 +3,9 @@ import { View, Dimensions, Text } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler, TapGestureHandlerStateChangeEvent, PanGestureHandlerStateChangeEvent, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 
-const { width, height } = Dimensions.get('window');
-
+const { width } = Dimensions.get('window');
+import spring from '../procs/springFill'
+import procs from '../procs/carousel'
 const {
   debug,
   onChange,
@@ -20,7 +21,6 @@ const {
   lessThan,
   interpolate,
   greaterThan,
-  spring,
   timing,
   block,
   startClock,
@@ -39,73 +39,145 @@ const {
 
 import BackButton from '../components/BackButton'
 
+const numCards = 7
+const tickWidth = width / 2
+const size = width * 0.8
+const maxIndex = numCards - 1
+const colorMultiplier = 255 / maxIndex
+
 interface Props {
   navigation: any
 }
 
 class Carousel extends Component<Props> {
 
-  mainHandler: React.RefObject<PanGestureHandler>
-  translationX: Animated.Value<number>
-  prevTrans: Animated.Value<number>
-  cumulativeTrans: Animated.Value<number>
-  perspective: Animated.Value<number>
-  panGestureState: Animated.Value<State>
-  tapGestureState: Animated.Value<State>
-  activeCardIndex: Animated.Value<number>
-  clock: Animated.Clock
-  altClock: Animated.Clock
-  _mounted: Animated.Value<number>
-  _prevLeanAmt: Animated.Value<number>
-  animState: Animated.TimingState
-  animConfig: Animated.TimingConfig
-  altState: Animated.SpringState
-  altConfig: Animated.SpringConfig
+  mainHandler = React.createRef<PanGestureHandler>()
+  translationX = new Value<number>(0)
+  prevTrans = new Value<number>(0)
+  perspective = new Value<number>(850)
+  panGestureState = new Value(State.UNDETERMINED)
+  tapGestureState = new Value(State.UNDETERMINED)
+  activeCardIndex = new Value<number>(0)
+  clock = new Clock()
+  altClock = new Clock()
+  _mounted = new Value<number>(1)
 
-  onTapStateChange: (e: TapGestureHandlerStateChangeEvent) => void
-  onPanStateChange: (e: PanGestureHandlerStateChangeEvent) => void
-  onPanGestureEvent: (e: PanGestureHandlerGestureEvent) => void
-  cards
+  _prevLeanAmt = new Value<number>(0)
 
-  constructor(props) {
-    super(props)
-    this.mainHandler = React.createRef()
+  animState: Animated.TimingState = {
+    finished: new Value(0),
+    position: new Value(0),
+    frameTime: new Value(0),
+    time: new Value(0),
+  }
+  animConfig: Animated.TimingConfig = {
+    toValue: new Value(0),
+    duration: new Value(5000),
+    easing: Easing.out(Easing.ease),
+  }
+  altState: Animated.SpringState = {
+    finished: new Value(0),
+    position: new Value(0),
+    velocity: new Value(0),
+    time: new Value(0),
+  }
+  altConfig: Animated.SpringConfig = {
+    damping: 15,
+    mass: 1,
+    stiffness: 150,
+    overshootClamping: false,
+    toValue: new Value<number>(0),
+    restSpeedThreshold: 0.001,
+    restDisplacementThreshold: 0.001,
+  }
 
-    this.translationX = new Value(0)
-    this.prevTrans = new Value(0)
-    this.cumulativeTrans = new Value(0)
-    this.panGestureState = new Value(State.UNDETERMINED)
-    this.tapGestureState = new Value(State.UNDETERMINED)
-    this.perspective = new Value(850)
-    this.activeCardIndex = new Value(0)
-    this.perspective = new Value(850)
-    this.clock = new Clock()
-    this.altClock = new Clock()
-    this._mounted = new Value(1)
-
-
-    this.animState = {
-      finished: new Value(0),
-      position: new Value(0),
-      frameTime: new Value(0),
-      time: new Value(0),
+  cumulativeTrans = add(this.prevTrans, this.translationX, this.animState.position)
+  diffAmt = diff(abs(this.cumulativeTrans))
+  prevDiff = new Value<number>(0)
+  diffSmoothed = procs.getDiffSmoothed(this.tapGestureState, this.prevDiff, this.diffAmt)
+  leanAmt = multiply(this.diffSmoothed, 0.005)
+  onTapStateChange = event([
+    {
+      nativeEvent: ({ state }) => block([
+        set(this.tapGestureState, state),
+        onChange(this.tapGestureState, [
+          cond(eq(this.tapGestureState, State.BEGAN), [
+            set(this.animConfig.toValue, 0),
+            cond(clockRunning(this.clock), [
+              set(this.altState.position, this._prevLeanAmt),
+              startClock(this.altClock),
+              stopClock(this.clock),
+              set(this.prevTrans, this.cumulativeTrans),
+              procs.reset4(this.animState.time, this.animState.position, this.animState.frameTime, this.animState.finished),
+            ])
+          ])
+        ])
+      ])
     }
+  ])
 
-    this.animConfig = {
-      toValue: new Value(0),
-      duration: new Value(5000),
-      easing: Easing.out(Easing.ease),
-    }
+  onPanStateChange = event([{
+    nativeEvent: ({ state }) => block([
+      set(this.panGestureState, state),
+      onChange(this.panGestureState, [
+        cond(eq(this.panGestureState, State.ACTIVE), [
+          cond(clockRunning(this.clock), [
+            stopClock(this.clock),
+            procs.reset4(this.animState.time, this.animState.position, this.animState.frameTime, this.animState.finished),
+          ]),
+        ]),
 
+        cond(eq(this.panGestureState, State.END),
+          [
+            set(this.prevTrans, add(this.translationX, this.prevTrans)),
+            set(this.translationX, 0),
+            cond(clockRunning(this.clock), [
+              stopClock(this.clock),
+              procs.reset4(this.animState.time, this.animState.position, this.animState.frameTime, this.animState.finished),
+            ]),
+            cond(greaterThan(abs(this.animConfig.toValue), 0), [
+              set(this.animConfig.duration, 5000),
+              procs.reset4(this.animState.time, this.animState.position, this.animState.frameTime, this.animState.finished),
+              startClock(this.clock),
+            ]),
+          ]),
+      ]),
+    ])
+    }]
+    )
 
-    this.altState = {
+  onPanGestureEvent = event([{
+    nativeEvent: ({ translationX: x, velocityX }) => block([
+      cond(eq(this.panGestureState, State.ACTIVE), [
+        set(this.translationX, x),
+        set(this.animConfig.toValue, velocityX),
+      ])
+    ])
+  }])
+
+  cards = [...Array(numCards)].fill(0).map((_d, i, arr) => {
+    // Somehow the top of the stack ended up as index 0
+    // but the next item down is arr.length - 1
+    // for example, indices would go
+    // 0
+    // 4
+    // 3
+    // 2
+    // 1
+    // `colorIndex` compensates for this
+    const colorIndex = maxIndex - (i + maxIndex) % (arr.length)
+    const index = new Value(i)
+    const cardTransY = new Value(0)
+    const cardGestureState = new Value(0)
+    const cardClock = new Clock()
+    const cardState = {
       finished: new Value(0),
-      position: new Value(0),
+      position: new Value(1),
       velocity: new Value(0),
       time: new Value(0),
     }
 
-    this.altConfig = {
+    const cardConfig = {
       damping: 15,
       mass: 1,
       stiffness: 150,
@@ -115,216 +187,33 @@ class Carousel extends Component<Props> {
       restDisplacementThreshold: 0.001,
     }
 
-    const numCards = 7
-    const tickWidth = width / 2
-    const size = width * 0.8
-    const maxIndex = numCards - 1
+    const transToIndex = procs.getTransToIndex(this.cumulativeTrans, tickWidth, index, arr.length)
+    const rotateX = procs.getRotateX(this.leanAmt, this.altState.position)
+    const rotateY = procs.getRotateY(transToIndex, numCards)
+    const translateX = procs.getTranslateX(rotateY, width / 3)
+    const scaleXY = procs.getScaleXY(rotateY)
+    const zIndex = procs.getZIndex(transToIndex, arr.length)
+    const translateY = 0
 
-    const cumulativeTrans = add(this.prevTrans, this.translationX, this.animState.position) // TODO: figure out how to do this without inverting
-    const colorMultiplier = 255 / maxIndex
-
-    const resetAnimState = [
-      set(this.animState.time, 0),
-      set(this.animState.position, 0),
-      set(this.animState.frameTime, 0),
-      set(this.animState.finished, 0)
-    ]
-
-    const resetAltState = [
-      set(this.altState.time, 0),
-      set(this.altState.velocity, 0),
-      set(this.altState.finished, 0),
-      set(this.altState.position, 0),
-    ]
-
-    const runClock = [
-      cond(clockRunning(this.clock), [
-        timing(this.clock, this.animState, this.animConfig),
-        cond(
-          or(
-            not(this._mounted),
-            and(this.animState.finished, clockRunning(this.clock))
-          ),
-          [
-            stopClock(this.clock),
-            set(this.prevTrans, add(this.prevTrans, this.animState.position)),
-            resetAnimState,
-          ]),
-      ]),
-      cond(clockRunning(this.altClock), [
-        spring(this.altClock, this.altState, this.altConfig),
-        cond(and(eq(this.altState.finished, 1), clockRunning(this.altClock)), [
-          stopClock(this.altClock),
-          resetAltState,
-        ]),
-      ])
-    ]
-
-    this._prevLeanAmt = new Value(0)
-    const prevDiff = new Value(0)
-    const absTrans = abs(cumulativeTrans)
-    const diffAmt = diff(absTrans)
-    const diffOfTheDiff = diff(diffAmt)
-    const diffSmoothed = cond(
-      or(
-        lessThan(abs(diffOfTheDiff), 1),
-        eq(this.tapGestureState, State.BEGAN),
-      )
-      , [
-        diffOfTheDiff,
-        set(prevDiff, diffAmt),
-        diffAmt,
-      ], prevDiff)
-
-    const diffScaled = multiply(diffSmoothed, 0.005)
-
-    const leanAmt = block([
-      runClock,
-      onChange(diffScaled, [
-        set(this._prevLeanAmt, diffScaled),
-      ]),
-      diffScaled,
-    ])
-
-    this.cards = [...Array(numCards)].fill(0).map((_d, i, arr) => {
-      // Somehow the top of the stack ended up as index 0
-      // but the next item down is arr.length - 1
-      // for example, indices would go
-      // 0
-      // 4
-      // 3
-      // 2
-      // 1
-      // `colorIndex` compensates for this
-      const colorIndex = maxIndex - (i + maxIndex) % (arr.length)
-      const index = new Value(i)
-      const cardTransY = new Value(0)
-      const cardGestureState = new Value(0)
-      const cardClock = new Clock()
-      const cardState = {
-        finished: new Value(0),
-        position: new Value(1),
-        velocity: new Value(0),
-        time: new Value(0),
-      }
-
-      const cardConfig = {
-        damping: 15,
-        mass: 1,
-        stiffness: 150,
-        overshootClamping: false,
-        toValue: new Value(0),
-        restSpeedThreshold: 0.001,
-        restDisplacementThreshold: 0.001,
-      }
-
-      const interpolated = interpolate(cumulativeTrans, {
-        inputRange: [-tickWidth, 0, tickWidth],
-        outputRange: [sub(index, 1), index, add(index, 1)],
-      })
-
-      const transToIndex = modulo(interpolated, arr.length)
-
-      const rotateX = multiply(min(0.2, abs(add(leanAmt, this.altState.position))), -1)
-      const rotateY = interpolate(transToIndex, {
-        inputRange: [0, numCards],
-        outputRange: [0, Math.PI * 2],
-      })
-
-      const translateX = multiply(width / 3, sin(rotateY))
-      const translateY = 0
-
-      const scaleXY = add(1,
-        multiply(0.15, sin(add(Math.PI / 2, rotateY))),
-      )
-
-      const zIndex = interpolate(transToIndex, {
-        inputRange: [0, arr.length / 2, arr.length],
-        outputRange: [200, 0, 200],
-        extrapolate: Animated.Extrapolate.CLAMP,
-      })
-
-      return {
-        color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
-        scale: scaleXY,
-        zIndex,
-        translateX,
-        translateY,
-        size,
-        rotateY,
-        rotateX,
-        index: i,
-        perspective: this.perspective,
-        handlerRef: React.createRef(),
-        cardState,
-        cardConfig,
-        cardTransY,
-        cardClock,
-        cardGestureState,
-      }
-    })
-
-    this.onTapStateChange = event([
-      {
-        nativeEvent: ({ state }) => block([
-          set(this.tapGestureState, state),
-          onChange(this.tapGestureState, [
-            cond(eq(this.tapGestureState, State.BEGAN), [
-              set(this.animConfig.toValue, 0),
-              cond(clockRunning(this.clock), [
-                set(this.altState.position, this._prevLeanAmt),
-                startClock(this.altClock),
-                stopClock(this.clock),
-                set(this.prevTrans, cumulativeTrans),
-                resetAnimState,
-              ])
-            ])
-          ])
-        ])
-      }
-    ])
-
-    this.onPanGestureEvent = event([{
-      nativeEvent: ({ translationX: x, velocityX }) => block([
-        cond(eq(this.panGestureState, State.ACTIVE), [
-          set(this.translationX, x),
-          set(this.animConfig.toValue, velocityX),
-        ])
-      ])
-    }])
-
-    this.onPanStateChange = event([{
-      nativeEvent: ({ state }) => block([
-        set(this.panGestureState, state),
-        onChange(this.panGestureState, [
-          cond(eq(this.panGestureState, State.ACTIVE), [
-            cond(clockRunning(this.clock), [
-              stopClock(this.clock),
-              resetAnimState,
-            ]),
-          ]),
-
-          cond(eq(this.panGestureState, State.END),
-            [
-              set(this.prevTrans, add(this.translationX, this.prevTrans)),
-              set(this.translationX, 0),
-              cond(clockRunning(this.clock), [
-                stopClock(this.clock),
-                resetAnimState
-              ]),
-              cond(greaterThan(abs(this.animConfig.toValue), 0), [
-                set(this.animConfig.duration, 5000),
-                resetAnimState,
-                startClock(this.clock),
-              ]),
-            ]),
-        ]),
-      ])
-    }]
-    )
-  }
-
-
+    return {
+      color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
+      scale: scaleXY,
+      zIndex,
+      translateX,
+      translateY,
+      size,
+      rotateY,
+      rotateX,
+      index: i,
+      perspective: this.perspective,
+      handlerRef: React.createRef(),
+      cardState,
+      cardConfig,
+      cardTransY,
+      cardClock,
+      cardGestureState,
+    }
+  })
 
   renderCard = ({ handlerRef, cardTransY, cardClock, cardState, cardConfig, cardGestureState, color, scale, translateX, translateY, zIndex, rotateY, rotateX, size, perspective }, i) => {
     // @NOTE: PanGestureHandler should not directly wrap an element that can rotate completely on edge.
@@ -350,10 +239,7 @@ class Carousel extends Component<Props> {
             cond(and(eq(state, State.ACTIVE), clockRunning(cardClock)), [
               stopClock(cardClock),
               set(cardState.position, 1),
-              set(cardState.finished, 0),
-              set(cardState.time, 0),
-              set(cardState.velocity, 0),
-              set(cardTransY, 0),
+              procs.reset4(cardState.finished, cardState.time, cardState.velocity, cardTransY),
             ]),
             set(cardGestureState, state),
           ])
@@ -385,27 +271,22 @@ class Carousel extends Component<Props> {
               zIndex,
               transform: [{
                 perspective,
-                translateY: block([
-                  cond(and(clockRunning(cardClock), cardState.finished), [
-                    stopClock(cardClock),
-                    set(cardState.position, 1),
-                    set(cardState.finished, 0),
-                    set(cardState.time, 0),
-                    set(cardState.velocity, 0),
-                    set(cardTransY, 0),
-                  ]),
-                  cond(clockRunning(cardClock), [
+                translateY: cond(clockRunning(cardClock), [
                     spring(cardClock, cardState, cardConfig),
                     multiply(add(translateY, cardTransY), cardState.position),
-                  ], [
-                    add(translateY, cardTransY),
-                  ]),
-                ]),
+                  ], add(translateY, cardTransY)),
                 rotateY,
                 rotateX,
               }]
             }}
           />
+          <Animated.Code>
+            {() => cond(and(clockRunning(cardClock), cardState.finished), [
+              stopClock(cardClock),
+              set(cardState.position, 1),
+              procs.reset4(cardState.finished, cardState.time, cardState.velocity, cardTransY)
+            ])}
+          </Animated.Code>
         </Animated.View>
       </PanGestureHandler>
     )
@@ -450,6 +331,31 @@ class Carousel extends Component<Props> {
           </Animated.View>
         </PanGestureHandler>
         <BackButton />
+        <Animated.Code>
+          {() => block([
+            onChange(this.leanAmt, set(this._prevLeanAmt, this.leanAmt)),
+            cond(clockRunning(this.clock), [
+              timing(this.clock, this.animState, this.animConfig),
+              cond(
+                or(
+                  not(this._mounted),
+                  and(this.animState.finished, clockRunning(this.clock))
+                ),
+                [
+                  stopClock(this.clock),
+                  set(this.prevTrans, add(this.prevTrans, this.animState.position)),
+                  procs.reset4(this.animState.time, this.animState.position, this.animState.frameTime, this.animState.finished),
+                ]),
+            ]),
+            cond(clockRunning(this.altClock), [
+              spring(this.altClock, this.altState, this.altConfig),
+              cond(and(eq(this.altState.finished, 1), clockRunning(this.altClock)), [
+                stopClock(this.altClock),
+                procs.reset4(this.altState.time, this.altState.velocity, this.altState.finished, this.altState.position),
+              ]),
+            ])
+          ])}
+        </Animated.Code>
       </View>
     )
   }

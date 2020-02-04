@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { View, TouchableOpacity, Dimensions, ScrollView, StyleSheet } from 'react-native'
+import { View, TouchableOpacity, Dimensions, ScrollView, StyleSheet, Platform } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient';
 import { NavigationScreenProp } from 'react-navigation'
 
@@ -126,6 +126,23 @@ class Menu extends Component<Props> {
     </View>
   )
 
+  renderBackground = () => (
+    <View style={{
+      ...StyleSheet.absoluteFillObject,
+    }}
+    >
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: start
+        }}
+      />
+      <View style={{
+        flex: 1,
+        backgroundColor: end
+      }} />
+    </View>
+  )
 
 
   render() {
@@ -134,22 +151,9 @@ class Menu extends Component<Props> {
       <View style={{
         flex: 1, backgroundColor: 'seashell'
       }}
-      >       
-      <View style={{
-        ...StyleSheet.absoluteFillObject,
-      }}
       >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: start
-            }}
-          />
-          <View style={{
-            flex: 1,
-            backgroundColor: end
-          }} />
-        </View>
+        {Platform.OS === "ios" && this.renderBackground()}
+
 
         <ScrollView
           showsVerticalScrollIndicator={false}

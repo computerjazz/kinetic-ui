@@ -27,6 +27,7 @@ const {
   abs,
   cos,
   lessThan,
+  interpolate,
 } = Animated;
 
 const numCards = 7
@@ -61,7 +62,7 @@ class Deck extends Component {
 }
   clockTrans = cond(clockRunning(this.clock), this.sprState.position, 0)
   cumulativeTrans = add(this.translationY, this.prevTrans, this.clockTrans)
-  ry = Animated.interpolate(this.cumulativeTrans, {
+  ry = interpolate(this.cumulativeTrans, {
     inputRange: [0, height],
     outputRange: [0, 1],
   })
@@ -100,28 +101,25 @@ class Deck extends Component {
     const maxY = multiplier * (height / 5)
     const scaleMultiplier = 1 - (i * (1 / arr.length))
 
-    const iy = Animated.interpolate(this.ry, {
+    const iy = interpolate(this.ry, {
       inputRange: [-0.5, 0, 0.5],
       outputRange: [-maxY, i * 5, maxY],
     })
 
     const xOffset = width / 4
+    const ix = procs.getXInput(this.ry, ratio, xOffset)
 
-    const ix = multiply(
-      abs(add(multiply(this.ry, cos(ratio), -xOffset), multiply(this.ry, xOffset))),
-      -1)
-
-    const rotateZ = Animated.interpolate(this.ry, {
+    const rotateZ = interpolate(this.ry, {
       inputRange: [0, 1],
       outputRange: [0, multiplier * Math.PI / 2],
     })
 
-    const scale = Animated.interpolate(this.ry, {
+    const scale = interpolate(this.ry, {
       inputRange: [-0.5, 0, 0.5],
       outputRange: [1, 1 + scaleMultiplier * 0.1, 1],
     })
 
-    const ic = Animated.interpolate(state.position, {
+    const ic = interpolate(state.position, {
       inputRange: [0, 0.5, 1],
       outputRange: [0, 0.1, 0],
     })
@@ -151,10 +149,7 @@ class Deck extends Component {
       timing(clock, state, config),
       cond(state.finished, [
         stopClock(clock),
-        set(state.position, 0),
-        set(state.frameTime, 0),
-        set(state.time, 0),
-        set(state.finished, 0),
+        procs.reset4(state.position, state.frameTime, state.time, state.finished),
       ]),
     ])
 
@@ -229,24 +224,19 @@ class Deck extends Component {
           eq(this.gestureState, State.ACTIVE),
           neq(state, State.ACTIVE),
         ), [
-        set(this.prevTrans, add(this.prevTrans, this.translationY)),
-        set(this.translationY, 0),
-        set(this.sprState.position, this.prevTrans),
-        set(this.prevTrans, 0),
-        cond(
-          greaterThan(abs(this.sprState.position), height / 4),
-          set(this.sprConfig.toValue, cond(greaterThan(this.sprState.position, 0), [height / 2], [-height / 2])),
-          set(this.sprConfig.toValue, 0),
+        procs.onPanEnd(
+          this.prevTrans,
+          this.translationY,
+          this.sprState.position,
+          this.sprConfig.toValue,
+          height,
         ),
         startClock(this.clock),
       ]),
       cond(and(eq(state, State.ACTIVE), clockRunning(this.clock)), [
         stopClock(this.clock),
         set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
-        set(this.sprState.position, 0),
-        set(this.sprState.time, 0),
-        set(this.sprState.velocity, 0),
-        set(this.sprState.finished, 0),
+        procs.reset4(this.sprState.position, this.sprState.time, this.sprState.velocity, this.sprState.finished),
       ]),
 
       set(this.gestureState, state),

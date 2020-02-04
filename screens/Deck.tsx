@@ -4,6 +4,7 @@ import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 import BackButton from '../components/BackButton'
 import spring from '../procs/springFill'
+import timing from '../procs/timingFill'
 import procs from '../procs/deck'
 const { width, height } = Dimensions.get('window');
 
@@ -14,9 +15,6 @@ const {
   cond,
   eq,
   add,
-  multiply,
-  greaterThan,
-  timing,
   block,
   startClock,
   stopClock,
@@ -25,7 +23,6 @@ const {
   Clock,
   event,
   abs,
-  cos,
   lessThan,
   interpolate,
 } = Animated;
@@ -45,23 +42,24 @@ class Deck extends Component {
 
 
   sprState: Animated.SpringState = {
-  finished: new Value(0),
-  velocity: new Value(0),
-  position: new Value(0),
-  time: new Value(0),
-}
-
+    finished: new Value(0),
+    velocity: new Value(0),
+    position: new Value(0),
+    time: new Value(0),
+  }
   sprConfig: Animated.SpringConfig = {
-  damping: 20,
-  mass: 0.3,
-  stiffness: 70,
-  overshootClamping: false,
-  toValue: new Value(0),
-  restSpeedThreshold: 0.05,
-  restDisplacementThreshold: 0.05,
-}
+    damping: 20,
+    mass: 0.3,
+    stiffness: 70,
+    overshootClamping: false,
+    toValue: new Value(0),
+    restSpeedThreshold: 0.05,
+    restDisplacementThreshold: 0.05,
+  }
+
   clockTrans = cond(clockRunning(this.clock), this.sprState.position, 0)
   cumulativeTrans = add(this.translationY, this.prevTrans, this.clockTrans)
+
   ry = interpolate(this.cumulativeTrans, {
     inputRange: [0, height],
     outputRange: [0, 1],
@@ -138,10 +136,10 @@ class Deck extends Component {
       opacity: 0.8,
       transform: [{
         translateY: iy,
-        translateX: cond(this.left, multiply(ix, -1), ix),
+        translateX: procs.getDirectionalVal(this.left, ix),
+        rotateZ: procs.getDirectionalVal(this.left, rotateZ),
         scaleX: scaleXY,
         scaleY: scaleXY,
-        rotateZ: cond(this.left, multiply(rotateZ, -1), rotateZ),
       }]
     }
 
@@ -170,7 +168,6 @@ class Deck extends Component {
     }
   })
 
-
   renderCard = ({
     size,
     style,
@@ -190,7 +187,7 @@ class Deck extends Component {
             alignItems: 'flex-end',
             justifyContent: 'flex-end',
             padding: 10
-          }}/>
+          }} />
         </TapGestureHandler>
         <Animated.Code>
           {runCode}
@@ -210,15 +207,7 @@ class Deck extends Component {
 
   onPanStateChange = event([{
     nativeEvent: ({ state, x }) => block([
-      cond(
-        and(
-          eq(state, State.ACTIVE),
-          neq(this.gestureState, State.ACTIVE),
-          lessThan(abs(this.cumulativeTrans), 50),
-        ), [
-        set(this.left, cond(lessThan(x, width / 2), 1, 0)),
-      ]
-      ),
+      procs.onPanActive(state, this.gestureState, this.cumulativeTrans, width, x, this.left),
       cond(
         and(
           eq(this.gestureState, State.ACTIVE),
@@ -258,7 +247,6 @@ class Deck extends Component {
             onGestureEvent={this.onPanGestureEvent}
             onHandlerStateChange={this.onPanStateChange}
           >
-
             <Animated.View style={{
               flex: 1,
               alignItems: 'center',

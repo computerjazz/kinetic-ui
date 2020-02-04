@@ -1,4 +1,5 @@
 import Animated from 'react-native-reanimated'
+import { State } from 'react-native-gesture-handler'
 
 const {
   proc,
@@ -11,6 +12,10 @@ const {
   cond,
   greaterThan,
   divide,
+  and, 
+  eq,
+  neq,
+  lessThan
 } = Animated
 
 const resetSpring = proc((time, position, finished, velocity, toValue, prevTrans) => block([
@@ -55,9 +60,32 @@ const onPanEnd = proc((
   ),
 ]))
 
+const onPanActive = proc((
+  state,
+  gestureState,
+  cumulativeTrans,
+  width,
+  x,
+  left,
+) => cond(
+  and(
+    eq(state, State.ACTIVE),
+    neq(gestureState, State.ACTIVE),
+    lessThan(abs(cumulativeTrans), 50),
+  ),
+  set(left, cond(lessThan(x, divide(width, 2)), 1, 0)),
+),)
+
+const getDirectionalVal = proc((
+  left,
+  val,
+) => cond(left, multiply(val, -1), val))
+
 export default {
   resetSpring,
   getXInput,
   reset4,
+  onPanActive,
   onPanEnd,
+  getDirectionalVal,
 }

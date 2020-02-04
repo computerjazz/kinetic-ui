@@ -19,6 +19,8 @@ const dotSize = width / 5
 
 const additionalScale = 0.5
 const numDots = 7
+const colorMultiplier = 255 / (numDots - 1)
+
 const ringScales = {
   disabled: 0,
   in: 2,
@@ -116,7 +118,6 @@ runScale = block([
   ])
 
   dots = [...Array(numDots)].map((d, index, arr) => {
-    const colorMultiplier = 255 / (arr.length - 1)
 
     const clock = new Clock();
 
@@ -153,29 +154,18 @@ runScale = block([
     const b = round(sub(255, c))
     const dotColor = color(r, g, b)
 
-    const runCode = () => cond(clockRunning(clock), [
-        spring(clock, dotScaleState, dotScaleConfig),
-        cond(dotScaleState.finished, [
-          stopClock(clock),
-          set(dotScaleState.finished, 0),
-          set(dotScaleState.velocity, 0),
-          set(dotScaleState.time, 0),
-        ])
-      ])
-    
-
     const x = {
       start: startX,
       prev: prevX,
       drag: dragX,
-      translate: add(startX, multiply(dotScaleState.position, add(dragX, prevX)))
+      translate: procs.getTranslate(startX, dotScaleState.position, dragX, prevX)
     }
 
     const y = {
       start: startY,
       prev: prevY,
       drag: dragY,
-      translate: add(startY, multiply(dotScaleState.position, add(dragY, prevY)))
+      translate: procs.getTranslate(startY, dotScaleState.position, dragY, prevY)
     }
 
     const dotCenter = {
@@ -230,19 +220,6 @@ runScale = block([
       toValue: new Value(ringScales.in),
     }
 
-    const ringScale = block([
-      cond(clockRunning(ringClock), [
-        spring(ringClock, ringState, ringConfig),
-        cond(ringState.finished, [
-          stopClock(ringClock),
-          set(ringState.time, 0),
-          set(ringState.velocity, 0),
-          set(ringState.finished, 0),
-        ])
-      ]),
-      ringState.position,
-    ])
-
     const ringColor = color(ringR, ringG, ringB, ringA)
     const ringOpacity = cond(
       and(
@@ -254,7 +231,7 @@ runScale = block([
       clock: ringClock,
       state: ringState,
       config: ringConfig,
-      scale: sub(add(this.dropZoneScale, ringScale), 1),
+      scale: sub(add(this.dropZoneScale, ringState.position), 1),
       r: ringR,
       g: ringG,
       b: ringB,
@@ -287,31 +264,18 @@ runScale = block([
       scale: new Value(0),
     }
 
-    const runEndClock = [
-      timing(endClock, endState, endConfig),
-      cond(endState.finished, [
-        stopClock(endClock),
-        procs.reset4(placeholder.a, endState.finished, endState.time, endState.frameTime),
-      ]),
-      endState.position,
-    ]
+    const endClockRunning = clockRunning(endClock)
+    const startEndClock = startClock(endClock)
+    const stopEndClock = stopClock(endClock)
 
-    const scaleVal = cond(
-      clockRunning(endClock), [
-      set(placeholder.scale, multiply(add(1, additionalScale), add(1, multiply(-1, runEndClock)))),
-      runEndClock,
-    ], [
-      cond(neq(endState.position, endState.disabled), set(endState.position, endState.disabled)),
-      add(multiply(dotScaleState.position, additionalScale), 1)
-    ],
+    const scaleVal = procs.getScale(
+      endClockRunning,
+      endState.position,
+      endState.disabled,
+      dotScaleState.position,
+      additionalScale,
     )
 
-    const panGestureState = new Value(State.UNDETERMINED)
-    const longPressGestureState = new Value(State.UNDETERMINED)
-    const tapGestureState = new Value(State.UNDETERMINED)
-    const zIndex = new Value(999)
-
-    const rgb = { r, g, b }
     const scale = {
       clock: clock,
       value: scaleVal,
@@ -319,82 +283,79 @@ runScale = block([
       config: dotScaleConfig,
     }
 
+    const mainClockRunning = clockRunning(clock)
+    const startMainClock = startClock(clock)
+    const stopMainClock = stopClock(clock)
+
+    const ringClockRunning = clockRunning(ring.clock)
+    const startRingClock = startClock(ring.clock)
+    const stopRingClock = stopClock(ring.clock)
+
+    const scaleClockRunning = clockRunning(scale.clock)
+    const startScaleClock = startClock(scale.clock)
+    const stopScaleClock = stopClock(scale.clock)
+
+
+
+    const panGestureState = new Value(State.UNDETERMINED)
+    const longPressGestureState = new Value(State.UNDETERMINED)
+    const tapGestureState = new Value(State.UNDETERMINED)
+    const zIndex = new Value(999)
+
+    const rgb = { r, g, b }
+
+
     const onDotInactive = [
       cond(intersects, [
         set(placeholder.a, 1),
         set(endState.position, endState.disabled),
-        startClock(endClock),
+        startEndClock,
       ], set(placeholder.a, 0)),
 
       set(scale.config.toValue, 0),
-      startClock(scale.clock),
-
+      startScaleClock,
       set(ring.config.toValue, cond(intersects, ringScales.out, ringScales.disabled)),
-      startClock(ring.clock),
+      startRingClock,
       set(zIndex, 999),
     ]
 
-    const onDotActive = [
-      set(ring.a, 0), // Hide ring spring back to center
-      set(placeholder.a, 0),
-      set(ring.r, rgb.r),
-      set(ring.g, rgb.g),
-      set(ring.b, rgb.b),
-      set(placeholder.r, rgb.r),
-      set(placeholder.g, rgb.g),
-      set(placeholder.b, rgb.b),
-      set(zIndex, 9999),
-      set(scale.config.toValue, 1),
-      startClock(scale.clock),
-
-      cond(or(
-        clockRunning(ring.clock),
-        neq(ring.state.position, ringScales.disabled),
-      ), [
-        stopClock(ring.clock),
-        set(ring.state.position, ringScales.disabled),
-        set(ring.state.finished, 0),
-        set(ring.state.velocity, 0),
-        set(ring.state.time, 0),
-      ]),
-    ]
+    const onDotActive = procs.onDotActive(
+      ring.r,
+      ring.g,
+      ring.b,
+      ring.a,
+      rgb.r,
+      rgb.g,
+      rgb.b,
+      placeholder.r,
+      placeholder.g,
+      placeholder.b,
+      placeholder.a,
+      zIndex,
+      scale.config.toValue,
+      ringClockRunning,
+      stopRingClock,
+      startScaleClock,
+      ring.state.position,
+      ring.state.finished,
+      ring.state.velocity,
+      ring.state.time,
+      ringScales.disabled,
+    )
 
     const onPanGestureEvent = event([{
-      nativeEvent: ({ translationX, translationY }) => block([
-        cond(eq(panGestureState, State.ACTIVE), [
-          // Dot entering center
-          cond(
-            and(
-              intersects,
-              not(clockRunning(ring.clock)),
-              neq(ring.state.position, ringScales.in),
-            ),
-            [
-              set(ring.a, 1),
-              set(ring.state.position, ringScales.disabled),
-              set(ring.config.toValue, ringScales.in),
-              startClock(ring.clock),
-            ]
-          ),
-          // Dot leaving center
-          cond(
-            and(
-              not(intersects),
-              not(clockRunning(ring.clock)),
-              neq(ring.state.position, ringScales.disabled),
-            ), [
-            set(ring.config.toValue, ringScales.disabled),
-            startClock(ring.clock),
-          ]
-          ),
-          set(x.drag, translationX),
-          set(y.drag, translationY),
-          cond(intersects, [
-            set(placeholder.x, x.translate),
-            set(placeholder.y, y.translate),
-          ]),
-        ])
-      ]),
+      nativeEvent: ({ translationX, translationY }) => procs.onPanGestureEvent(
+        panGestureState,
+        x.drag,
+        y.drag,
+        translationX,
+        translationY,
+        intersects,
+        placeholder.x,
+        placeholder.y,
+        x.translate,
+        y.translate,
+      ),
     }])
 
     const onPanStateChange = event([{
@@ -432,57 +393,114 @@ runScale = block([
       )
     }])
 
+    const outerStyle = {
+      flex: 1,
+      position: 'absolute',
+      width: dotSize,
+      height: dotSize,
+      zIndex,
+      transform: [{
+        translateX: x.translate,
+        translateY: y.translate,
+      }]
+    }
+
+    const innerStyle = {
+      position: 'absolute',
+      opacity: 0.85,
+      width: dotSize,
+      height: dotSize,
+      borderRadius: dotSize / 2,
+      backgroundColor: dotColor,
+      transform: [{
+        scaleX: scale.value,
+        scaleY: scale.value,
+      }]
+    }
+
+    const runCode = () => block([
+      onChange(intersects, debug("intersetc change", intersects)),
+      // Dot entering center
+      cond(
+        and(
+          intersects,
+          not(ringClockRunning),
+          neq(ring.state.position, ringScales.in),
+        ),
+        [
+          set(ring.a, 1),
+          set(ring.state.position, ringScales.disabled),
+          set(ring.config.toValue, ringScales.in),
+          startRingClock,
+      ]),
+      // Dot leaving center
+      cond(
+        and(
+          not(intersects),
+          not(ringClockRunning),
+          neq(ring.state.position, ringScales.disabled),
+        ), [
+        set(ring.config.toValue, ringScales.disabled),
+        startRingClock,
+      ]),
+      cond(mainClockRunning, [
+        spring(clock, dotScaleState, dotScaleConfig),
+        cond(dotScaleState.finished, [
+          stopMainClock,
+          set(dotScaleState.finished, 0),
+          set(dotScaleState.velocity, 0),
+          set(dotScaleState.time, 0),
+        ])
+      ]),
+      cond(endClockRunning, [
+        set(placeholder.scale, multiply(add(1, additionalScale), add(1, multiply(-1, endState.position)))),
+        timing(endClock, endState, endConfig),
+        cond(endState.finished, [
+          stopEndClock,
+          procs.reset4(placeholder.a, endState.finished, endState.time, endState.frameTime),
+        ]),
+      ]),
+      cond(ringClockRunning, [
+        spring(ringClock, ringState, ringConfig),
+        cond(ringState.finished, [
+          stopRingClock,
+          set(ringState.time, 0),
+          set(ringState.velocity, 0),
+          set(ringState.finished, 0),
+        ])
+      ])
+    ])
+
     return {
       panRef: React.createRef(),
       onPanGestureEvent,
       onPanStateChange,
       onLongPressStateChange,
       onTapStateChange,
-      zIndex,
-      intersects,
-      x,
-      y,
-      scale,
-      clock,
-      endClock,
-      endState,
-      color: dotColor,
-      rgb,
       placeholder,
       ring,
+      outerStyle,
+      innerStyle,
       runCode,
     }
   })
 
   renderDot = ({
-    x,
-    y,
-    color,
-    scale,
     panRef,
     onPanGestureEvent,
     onPanStateChange,
     onLongPressStateChange,
     onTapStateChange,
-    zIndex,
     runCode,
+    outerStyle,
+    innerStyle,
   }, i) => {
 
 
     return (
       <Animated.View
         key={`dot-${i}`}
-        style={{
-          flex: 1,
-          position: 'absolute',
-          width: dotSize,
-          height: dotSize,
-          zIndex,
-          transform: [{
-            translateX: x.translate,
-            translateY: y.translate,
-          }]
-        }}
+        style={outerStyle}
       >
         <PanGestureHandler
           ref={panRef}
@@ -496,23 +514,8 @@ runScale = block([
               onHandlerStateChange={onLongPressStateChange}
             >
               <Animated.View style={styles.flex}>
-                <TapGestureHandler
-                  onHandlerStateChange={onTapStateChange}
-                >
-                  <Animated.View
-                    style={{
-                      position: 'absolute',
-                      opacity: 0.85,
-                      width: dotSize,
-                      height: dotSize,
-                      borderRadius: dotSize / 2,
-                      backgroundColor: color,
-                      transform: [{
-                        scaleX: scale.value,
-                        scaleY: scale.value,
-                      }]
-                    }}
-                  />
+                <TapGestureHandler onHandlerStateChange={onTapStateChange}>
+                  <Animated.View style={innerStyle}/>
                 </TapGestureHandler>
               </Animated.View>
             </LongPressGestureHandler>

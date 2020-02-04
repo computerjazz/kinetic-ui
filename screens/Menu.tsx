@@ -24,8 +24,6 @@ const { Clock, Value } = Animated
 const colors = ['#5f7ddb', '#7f007f']
 const [start, end] = colors
 
-
-
 const screens = [
   {
     title: 'Deck',
@@ -144,20 +142,14 @@ class Menu extends Component<Props> {
     </View>
   )
 
-
   render() {
-
     return (
       <View style={{
         flex: 1, backgroundColor: 'seashell'
       }}
       >
         {Platform.OS === "ios" && this.renderBackground()}
-
-
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView showsVerticalScrollIndicator={false}>
           <LinearGradient style={{
             flex: 1,
             paddingTop: 40,

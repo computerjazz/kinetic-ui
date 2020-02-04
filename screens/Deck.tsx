@@ -4,10 +4,10 @@ import Animated, { Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 import BackButton from '../components/BackButton'
 import spring from '../procs/springFill'
-import timing from '../procs/timingFill'
+import timingFill from '../procs/timingFill'
 import procs from '../procs/deck'
 const { width, height } = Dimensions.get('window');
-
+const { inOut: timing } = timingFill
 const {
   and,
   set,

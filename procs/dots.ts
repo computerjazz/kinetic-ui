@@ -16,6 +16,7 @@ const {
   neq,
   multiply,
   or,
+  sin,
 } = Animated
 
 const reset4 = proc((v1, v2, v3, v4) => block([
@@ -218,6 +219,8 @@ const onPanGestureEvent = proc((
   ])
 ]))
 
+const getDropZoneScale = proc((pos) => add(1, multiply(0.05, sin(pos))))
+
 export default {
   reset4,
   onTapStateChange,
@@ -230,4 +233,5 @@ export default {
   onDotActive,
   getTranslate,
   onPanGestureEvent,
+  getDropZoneScale,
 }

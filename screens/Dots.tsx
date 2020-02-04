@@ -42,8 +42,6 @@ const {
   set,
   neq,
   cond,
-  eq,
-  or,
   add,
   multiply,
   greaterThan,
@@ -87,47 +85,21 @@ class Dots extends Component {
     finished: new Value(0),
   }
   scaleConfig = {
-  easing: Easing.linear,
-  toValue: Math.PI * 2,
-  duration: new Value(1000),
-}
+    easing: Easing.linear,
+    toValue: Math.PI * 2,
+    duration: new Value(1000),
+  }
 
-scaleVal = new Value(0.05)
-runScale = block([
-    cond(not(clockRunning(this.dropZoneClock)), startClock(this.dropZoneClock)),
-      timing(this.dropZoneClock, this.scaleState, this.scaleConfig),
-      cond(this.scaleState.finished, [
-        stopClock(this.dropZoneClock),
-        procs.reset4(this.scaleState.position, this.scaleState.time, this.scaleState.frameTime, this.scaleState.finished),
-        startClock(this.dropZoneClock),
-      ]),
-      this.scaleState.position,
-    ])
-
-  dropZoneScale = add(1, multiply(this.scaleVal, sin(this.runScale)))
-
-  dropZoneRotate = block([
-    cond(not(clockRunning(this.rotClock)), startClock(this.rotClock)),
-    timing(this.rotClock, this.rotState, this.rotConfig),
-    cond(this.rotState.finished, [
-      stopClock(this.rotClock),
-      procs.reset4(this.rotState.position, this.rotState.time, this.rotState.frameTime, this.rotState.finished),
-      startClock(this.rotClock),
-    ]),
-    this.rotState.position,
-  ])
+  dropZoneScale = procs.getDropZoneScale(this.scaleState.position)
 
   dots = [...Array(numDots)].map((d, index, arr) => {
 
     const clock = new Clock();
-
     const dragX = new Value(0);
     const dragY = new Value(0);
     const ratio = index / arr.length
-
     const startX = new Value(dotCenterX + Math.sin(ratio * Math.PI * 2) * dropZoneRadius)
     const startY = new Value(dotCenterY + Math.cos(ratio * Math.PI * 2) * dropZoneRadius)
-
     const prevX = new Value(0);
     const prevY = new Value(0);
 
@@ -432,7 +404,7 @@ runScale = block([
           set(ring.state.position, ringScales.disabled),
           set(ring.config.toValue, ringScales.in),
           startRingClock,
-      ]),
+        ]),
       // Dot leaving center
       cond(
         and(
@@ -515,7 +487,7 @@ runScale = block([
             >
               <Animated.View style={styles.flex}>
                 <TapGestureHandler onHandlerStateChange={onTapStateChange}>
-                  <Animated.View style={innerStyle}/>
+                  <Animated.View style={innerStyle} />
                 </TapGestureHandler>
               </Animated.View>
             </LongPressGestureHandler>
@@ -596,7 +568,7 @@ runScale = block([
           transform: [{
             translateX,
             translateY,
-            rotate: this.dropZoneRotate,
+            rotate: this.rotState.position,
             scaleX: this.dropZoneScale,
             scaleY: this.dropZoneScale,
           }]
@@ -615,6 +587,24 @@ runScale = block([
           {this.dots.map(this.renderDot)}
         </SafeAreaView>
         <BackButton />
+        <Animated.Code>
+          {() => block([
+            cond(not(clockRunning(this.dropZoneClock)), startClock(this.dropZoneClock)),
+            timing(this.dropZoneClock, this.scaleState, this.scaleConfig),
+            cond(this.scaleState.finished, [
+              stopClock(this.dropZoneClock),
+              procs.reset4(this.scaleState.position, this.scaleState.time, this.scaleState.frameTime, this.scaleState.finished),
+              startClock(this.dropZoneClock),
+            ]),
+            cond(not(clockRunning(this.rotClock)), startClock(this.rotClock)),
+            timing(this.rotClock, this.rotState, this.rotConfig),
+            cond(this.rotState.finished, [
+              stopClock(this.rotClock),
+              procs.reset4(this.rotState.position, this.rotState.time, this.rotState.frameTime, this.rotState.finished),
+              startClock(this.rotClock),
+            ])
+          ])}
+        </Animated.Code>
       </Animated.View>
     )
   }

@@ -22,7 +22,7 @@ const numDots = 7
 const colorMultiplier = 255 / (numDots - 1)
 
 const ringScales = {
-  disabled: 0,
+  disabled: 0.01,
   in: 2,
   out: 15,
 }
@@ -56,6 +56,7 @@ const {
   color,
   Value,
   Clock,
+  max,
 } = Animated;
 
 class Dots extends Component {
@@ -89,15 +90,17 @@ class Dots extends Component {
   dropZoneScale = procs.getDropZoneScale(this.scaleState.position)
 
   dots = [...Array(numDots)].map((d, index, arr) => {
+    const ratio = index / arr.length
+    const startPos = {
+      x: dotCenterX + Math.sin(ratio * Math.PI * 2) * dropZoneRadius,
+      y: dotCenterY + Math.cos(ratio * Math.PI * 2) * dropZoneRadius
+    }
 
     const clock = new Clock();
     const dragX = new Value(0);
     const dragY = new Value(0);
-    const ratio = index / arr.length
-    const startX = new Value(dotCenterX + Math.sin(ratio * Math.PI * 2) * dropZoneRadius)
-    const startY = new Value(dotCenterY + Math.cos(ratio * Math.PI * 2) * dropZoneRadius)
-    const prevX = new Value(0);
-    const prevY = new Value(0);
+    const startX = new Value(startPos.x)
+    const startY = new Value(startPos.y)
 
     const dotScaleState = {
       finished: new Value(0),
@@ -124,16 +127,14 @@ class Dots extends Component {
 
     const x = {
       start: startX,
-      prev: prevX,
       drag: dragX,
-      translate: procs.getTranslate(startX, dotScaleState.position, dragX, prevX)
+      translate: procs.getTranslate(startX, dotScaleState.position, dragX)
     }
 
     const y = {
       start: startY,
-      prev: prevY,
       drag: dragY,
-      translate: procs.getTranslate(startY, dotScaleState.position, dragY, prevY)
+      translate: procs.getTranslate(startY, dotScaleState.position, dragY)
     }
 
     const dotCenter = {
@@ -217,15 +218,15 @@ class Dots extends Component {
     const placeholderA = new Value(0)
 
     const placeholder = {
-      x: new Value(0),
-      y: new Value(0),
+      x: new Value(startPos.x),
+      y: new Value(startPos.y),
       r: placeholderR,
       g: placeholderG,
       b: placeholderB,
       a: placeholderA,
       color: color(placeholderR, placeholderG, placeholderB, placeholderA),
       opacity: new Value(0),
-      scale: new Value(0),
+      scale: new Value(0.01),
     }
 
     const endClockRunning = clockRunning(endClock)
@@ -316,7 +317,6 @@ class Dots extends Component {
         y.drag,
         translationX,
         translationY,
-        intersects,
         placeholder.x,
         placeholder.y,
         x.translate,
@@ -387,54 +387,6 @@ class Dots extends Component {
       }]
     }
 
-    const runCode = () => block([
-      // Dot entering center
-      cond(
-        and(
-          intersects,
-          not(ringClockRunning),
-          neq(ring.state.position, ringScales.in),
-        ),
-        [
-          set(ring.a, 1),
-          set(ring.state.position, ringScales.disabled),
-          set(ring.config.toValue, ringScales.in),
-          startRingClock,
-        ]),
-      // Dot leaving center
-      cond(
-        and(
-          not(intersects),
-          not(ringClockRunning),
-          neq(ring.state.position, ringScales.disabled),
-        ), [
-        set(ring.config.toValue, ringScales.disabled),
-        startRingClock,
-      ]),
-      cond(mainClockRunning, [
-        spring(clock, dotScaleState, dotScaleConfig),
-        cond(dotScaleState.finished, [
-          stopMainClock,
-          procs.reset3(dotScaleState.finished, dotScaleState.velocity, dotScaleState.time),
-        ])
-      ]),
-      cond(endClockRunning, [
-        set(placeholder.scale, multiply(add(1, additionalScale), add(1, multiply(-1, endState.position)))),
-        timing(endClock, endState, endConfig),
-        cond(endState.finished, [
-          stopEndClock,
-          procs.reset4(placeholder.a, endState.finished, endState.time, endState.frameTime),
-        ]),
-      ]),
-      cond(ringClockRunning, [
-        spring(ringClock, ringState, ringConfig),
-        cond(ringState.finished, [
-          stopRingClock,
-          procs.reset3(ringState.time, ringState.velocity, ringState.finished),
-        ])
-      ])
-    ])
-
     const placeholderStyle = {
       position: 'absolute',
       opacity: 0.85,
@@ -468,6 +420,55 @@ class Dots extends Component {
         scaleY: ring.scale,
       }]
     }
+
+    const runCode = () => block([
+      // Dot entering center
+      cond(
+        and(
+          intersects,
+          not(ringClockRunning),
+          neq(ring.state.position, ringScales.in),
+        ),
+        [
+          set(ring.a, 1),
+          set(ring.state.position, ringScales.disabled),
+          set(ring.config.toValue, ringScales.in),
+          startRingClock,
+        ]),
+      // Dot leaving center
+      cond(
+        and(
+          not(intersects),
+          not(ringClockRunning),
+          neq(ring.state.position, ringScales.disabled),
+        ), [
+        set(ring.config.toValue, ringScales.disabled),
+        startRingClock,
+      ]),
+      cond(mainClockRunning, [
+        spring(clock, dotScaleState, dotScaleConfig),
+        cond(dotScaleState.finished, [
+          stopMainClock,
+          procs.reset3(dotScaleState.finished, dotScaleState.velocity, dotScaleState.time),
+        ])
+      ]),
+      cond(endClockRunning, [
+        timing(endClock, endState, endConfig),
+        set(placeholder.scale, max(0.01, multiply(add(1, additionalScale), add(1, multiply(-1, endState.position))))),
+        cond(endState.finished, [
+          debug('stop END CLOCK', placeholder.scale),
+          stopEndClock,
+          procs.reset4(placeholder.a, endState.finished, endState.time, endState.frameTime),
+        ]),
+      ]),
+      cond(ringClockRunning, [
+        spring(ringClock, ringState, ringConfig),
+        cond(ringState.finished, [
+          stopRingClock,
+          procs.reset3(ringState.time, ringState.velocity, ringState.finished),
+        ])
+      ])
+    ])
 
     return {
       panRef: React.createRef(),

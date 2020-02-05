@@ -67,10 +67,10 @@ const onTapStateChange = proc((
       neq(currentState, State.BEGAN),
       eq(newState, State.BEGAN),
     ), [
-      set(dragX, translationX),
-      set(dragY, translationY),
-      cond(not(dotActive), onDotActive)
-    ]
+    set(dragX, translationX),
+    set(dragY, translationY),
+    cond(not(dotActive), onDotActive)
+  ]
   ),
   cond(
     and(
@@ -156,7 +156,7 @@ const getScale = proc((
 ]
 ))
 
-const getTranslate = proc((start, pos, drag, prev) => add(start, multiply(pos, add(drag, prev))))
+const getTranslate = proc((start, pos, drag) => add(start, multiply(pos, drag)))
 
 const onDotActive = proc((
   dotActive,
@@ -221,7 +221,6 @@ const onPanGestureEvent = proc((
   dragY,
   translationX,
   translationY,
-  intersects,
   placeholderX,
   placeholderY,
   translateX,
@@ -230,10 +229,8 @@ const onPanGestureEvent = proc((
   cond(eq(panGestureState, State.ACTIVE), [
     set(dragX, translationX),
     set(dragY, translationY),
-    cond(intersects, [
-      set(placeholderX, translateX),
-      set(placeholderY, translateY),
-    ]),
+    set(placeholderX, translateX),
+    set(placeholderY, translateY),
   ])
 ]))
 
@@ -243,7 +240,7 @@ const getRingOpacity = proc((pos, disabled, out) => cond(
     greaterThan(pos, add(disabled, .05)),
     lessThan(pos, sub(out, .05)),
   ), 0.85, 0)
-  )
+)
 
 const onDotInactive = proc((
   dotActive,
@@ -260,18 +257,21 @@ const onDotInactive = proc((
   startScaleClock,
   startRingClock,
 ) => cond(dotActive, [
-    cond(intersects, [
+  cond(intersects,
+    block([
       set(placeholderA, 1),
       set(endPos, endDisabled),
       startEndClock,
-    ], set(placeholderA, 0)),
-    set(scaleToValue, 0),
-    startScaleClock,
-    set(ringToValue, cond(intersects, ringOut, ringDisabled)),
-    startRingClock,
-    set(zIndex, 999),
-    set(dotActive, 0),
-  ]))
+    ]),
+    set(placeholderA, 0)
+  ),
+  set(scaleToValue, 0),
+  startScaleClock,
+  set(ringToValue, cond(intersects, ringOut, ringDisabled)),
+  startRingClock,
+  set(zIndex, 999),
+  set(dotActive, 0),
+]))
 
 const reset3 = proc((v1, v2, v3) => block([
   set(v1, 0),

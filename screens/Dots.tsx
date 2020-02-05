@@ -225,7 +225,6 @@ class Dots extends Component {
       b: placeholderB,
       a: placeholderA,
       color: color(placeholderR, placeholderG, placeholderB, placeholderA),
-      opacity: new Value(0),
       scale: new Value(0.01),
     }
 
@@ -456,7 +455,6 @@ class Dots extends Component {
         timing(endClock, endState, endConfig),
         set(placeholder.scale, max(0.01, multiply(add(1, additionalScale), add(1, multiply(-1, endState.position))))),
         cond(endState.finished, [
-          debug('stop END CLOCK', placeholder.scale),
           stopEndClock,
           procs.reset4(placeholder.a, endState.finished, endState.time, endState.frameTime),
         ]),

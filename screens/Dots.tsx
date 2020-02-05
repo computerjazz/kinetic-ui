@@ -193,11 +193,7 @@ class Dots extends Component {
     }
 
     const ringColor = color(ringR, ringG, ringB, ringA)
-    const ringOpacity = cond(
-      and(
-        greaterThan(ringState.position, ringScales.disabled + .05),
-        lessThan(ringState.position, ringScales.out - .05),
-      ), 0.85, 0)
+    const ringOpacity = procs.getRingOpacity(ringState.position, ringScales.disabled, ringScales.out)
 
     const ring = {
       clock: ringClock,
@@ -267,7 +263,7 @@ class Dots extends Component {
     const startScaleClock = startClock(scale.clock)
     const stopScaleClock = stopClock(scale.clock)
 
-
+    const dotActive = new Value(0)
 
     const panGestureState = new Value(State.UNDETERMINED)
     const longPressGestureState = new Value(State.UNDETERMINED)
@@ -276,22 +272,24 @@ class Dots extends Component {
 
     const rgb = { r, g, b }
 
-
-    const onDotInactive = [
-      cond(intersects, [
-        set(placeholder.a, 1),
-        set(endState.position, endState.disabled),
-        startEndClock,
-      ], set(placeholder.a, 0)),
-
-      set(scale.config.toValue, 0),
+    const onDotInactive = procs.onDotInactive(
+      dotActive,
+      intersects,
+      placeholder.a,
+      endState.position,
+      endState.disabled,
+      scale.config.toValue,
+      ring.config.toValue,
+      ringScales.out,
+      ringScales.disabled,
+      zIndex,
+      startEndClock,
       startScaleClock,
-      set(ring.config.toValue, cond(intersects, ringScales.out, ringScales.disabled)),
       startRingClock,
-      set(zIndex, 999),
-    ]
+    )
 
     const onDotActive = procs.onDotActive(
+      dotActive,
       ring.r,
       ring.g,
       ring.b,
@@ -336,6 +334,7 @@ class Dots extends Component {
         state,
         onDotActive,
         onDotInactive,
+        dotActive,
       )
     }])
 
@@ -400,6 +399,7 @@ class Dots extends Component {
           neq(ring.state.position, ringScales.in),
         ),
         [
+          debug('starting ring Clock!!', ring.a),
           set(ring.a, 1),
           set(ring.state.position, ringScales.disabled),
           set(ring.config.toValue, ringScales.in),
@@ -419,9 +419,7 @@ class Dots extends Component {
         spring(clock, dotScaleState, dotScaleConfig),
         cond(dotScaleState.finished, [
           stopMainClock,
-          set(dotScaleState.finished, 0),
-          set(dotScaleState.velocity, 0),
-          set(dotScaleState.time, 0),
+          procs.reset3(dotScaleState.finished, dotScaleState.velocity, dotScaleState.time),
         ])
       ]),
       cond(endClockRunning, [
@@ -436,9 +434,7 @@ class Dots extends Component {
         spring(ringClock, ringState, ringConfig),
         cond(ringState.finished, [
           stopRingClock,
-          set(ringState.time, 0),
-          set(ringState.velocity, 0),
-          set(ringState.finished, 0),
+          procs.reset3(ringState.time, ringState.velocity, ringState.finished),
         ])
       ])
     ])

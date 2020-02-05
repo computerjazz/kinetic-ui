@@ -181,7 +181,7 @@ const onDotActive = proc((
   ringVel,
   ringTime,
   ringScaleDisabled,
-) => block([
+) => cond(not(dotActive), [
   set(dotActive, 1),
   setActiveDotVals(
     ringR,
@@ -259,20 +259,19 @@ const onDotInactive = proc((
   startEndClock,
   startScaleClock,
   startRingClock,
-) => block([
-  set(dotActive, 0),
-  cond(intersects, [
-    set(placeholderA, 1),
-    set(endPos, endDisabled),
-    startEndClock,
-  ], set(placeholderA, 0)),
-
-  set(scaleToValue, 0),
-  startScaleClock,
-  set(ringToValue, cond(intersects, ringOut, ringDisabled)),
-  startRingClock,
-  set(zIndex, 999),
-]))
+) => cond(dotActive, [
+    cond(intersects, [
+      set(placeholderA, 1),
+      set(endPos, endDisabled),
+      startEndClock,
+    ], set(placeholderA, 0)),
+    set(scaleToValue, 0),
+    startScaleClock,
+    set(ringToValue, cond(intersects, ringOut, ringDisabled)),
+    startRingClock,
+    set(zIndex, 999),
+    set(dotActive, 0),
+  ]))
 
 const reset3 = proc((v1, v2, v3) => block([
   set(v1, 0),

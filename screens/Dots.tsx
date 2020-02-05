@@ -37,6 +37,7 @@ const dotRadius = dotSize * (1 + additionalScale)
 
 const {
   debug,
+  onChange,
   and,
   not,
   set,
@@ -223,7 +224,7 @@ class Dots extends Component {
       b: placeholderB,
       a: placeholderA,
       color: color(placeholderR, placeholderG, placeholderB, placeholderA),
-      opacity: 1,
+      opacity: new Value(0),
       scale: new Value(0),
     }
 
@@ -434,6 +435,40 @@ class Dots extends Component {
       ])
     ])
 
+    const placeholderStyle = {
+      position: 'absolute',
+      opacity: 0.85,
+      width: dotSize,
+      height: dotSize,
+      borderRadius: dotSize / 2,
+      backgroundColor: placeholder.color,
+      zIndex: 999,
+      transform: [{
+        translateX: placeholder.x,
+        translateY: placeholder.y,
+        scaleX: placeholder.scale,
+        scaleY: placeholder.scale,
+      }]
+    }
+
+    const ringStyle = {
+      position: 'absolute',
+      opacity: ring.opacity,
+      width: dropZoneRadius,
+      height: dropZoneRadius,
+      borderRadius: dropZoneRadius,
+      borderColor: ring.color,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 20,
+      transform: [{
+        translateX,
+        translateY,
+        scaleX: ring.scale,
+        scaleY: ring.scale,
+      }]
+    }
+
     return {
       panRef: React.createRef(),
       onPanGestureEvent,
@@ -441,9 +476,10 @@ class Dots extends Component {
       onLongPressStateChange,
       onTapStateChange,
       placeholder,
-      ring,
       outerStyle,
       innerStyle,
+      ringStyle,
+      placeholderStyle,
       runCode,
     }
   })
@@ -458,7 +494,6 @@ class Dots extends Component {
     outerStyle,
     innerStyle,
   }, i) => {
-
 
     return (
       <Animated.View
@@ -491,52 +526,22 @@ class Dots extends Component {
     )
   }
 
-  renderPlaceholder = ({ placeholder }, i) => {
+  renderPlaceholder = ({ placeholderStyle }, i) => {
     return (
       <Animated.View
         key={`placeholder-${i}`}
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          opacity: 0.85,
-          width: dotSize,
-          height: dotSize,
-          borderRadius: dotSize / 2,
-          backgroundColor: placeholder.color,
-          zIndex: 999,
-          transform: [{
-            translateX: placeholder.x,
-            translateY: placeholder.y,
-            scaleX: placeholder.scale,
-            scaleY: placeholder.scale,
-          }]
-        }}
+        style={placeholderStyle}
       />
     )
   }
 
-  renderRing = ({ ring }, i) => {
+  renderRing = ({ ringStyle }, i) => {
     return (
       <Animated.View
         key={`ring-${i}`}
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          opacity: ring.opacity,
-          width: dropZoneRadius,
-          height: dropZoneRadius,
-          borderRadius: dropZoneRadius,
-          borderColor: ring.color,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: 20,
-          transform: [{
-            translateX,
-            translateY,
-            scaleX: ring.scale,
-            scaleY: ring.scale,
-          }]
-        }}
+        style={ringStyle}
       />
     )
   }

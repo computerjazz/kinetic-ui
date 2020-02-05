@@ -44,23 +44,18 @@ const {
   cond,
   add,
   multiply,
-  greaterThan,
-  lessThan,
   block,
   startClock,
   stopClock,
   clockRunning,
   sub,
   event,
-  sin,
   round,
   abs,
   color,
-  onChange,
   Value,
   Clock,
 } = Animated;
-
 
 class Dots extends Component {
 
@@ -348,6 +343,7 @@ class Dots extends Component {
         translationY,
         onDotActive,
         onDotInactive,
+        dotActive,
       )
     }])
 
@@ -361,6 +357,7 @@ class Dots extends Component {
         translationY,
         onDotActive,
         onDotInactive,
+        dotActive,
       )
     }])
 
@@ -390,7 +387,6 @@ class Dots extends Component {
     }
 
     const runCode = () => block([
-      onChange(intersects, debug("intersetc change", intersects)),
       // Dot entering center
       cond(
         and(
@@ -399,7 +395,6 @@ class Dots extends Component {
           neq(ring.state.position, ringScales.in),
         ),
         [
-          debug('starting ring Clock!!', ring.a),
           set(ring.a, 1),
           set(ring.state.position, ringScales.disabled),
           set(ring.config.toValue, ringScales.in),

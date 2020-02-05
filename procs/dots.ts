@@ -46,7 +46,7 @@ const onPanStateChange = proc((
       eq(newState, State.ACTIVE),
       neq(panGestureState, State.ACTIVE),
       not(dotActive),
-    ), debug('dotBecomingActive', onDotActive),
+    ), onDotActive,
   ),
   set(panGestureState, newState)
 ]))
@@ -60,6 +60,7 @@ const onTapStateChange = proc((
   translationY,
   onDotActive,
   onDotInactive,
+  dotActive,
 ) => block([
   cond(
     and(
@@ -68,13 +69,14 @@ const onTapStateChange = proc((
     ), [
       set(dragX, translationX),
       set(dragY, translationY),
-      onDotActive
+      cond(not(dotActive), onDotActive)
     ]
   ),
   cond(
     and(
       neq(currentState, State.END),
       eq(newState, State.END),
+      dotActive,
     ), onDotInactive,
   ),
   set(currentState, newState),
@@ -180,7 +182,6 @@ const onDotActive = proc((
   ringTime,
   ringScaleDisabled,
 ) => block([
-  debug('onACT', ringA),
   set(dotActive, 1),
   setActiveDotVals(
     ringR,

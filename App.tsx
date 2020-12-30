@@ -6,7 +6,7 @@ const App = () => {
   return (
     <>
       <StatusBar hidden />
-      <Navigator persistenceKey="app" />
+      <Navigator />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { View, Dimensions, Text, SafeAreaView, StyleProp, ViewStyle } from 'react-native'
-import Animated, { Easing } from 'react-native-reanimated';
+import Animated, { defined, Easing } from 'react-native-reanimated';
 import { PanGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, State, TapGestureHandler, TapGestureHandlerStateChangeEvent } from 'react-native-gesture-handler';
 import BackButton from '../components/BackButton'
 import spring from '../procs/springFill'
@@ -166,7 +166,7 @@ class Deck extends Component {
         }]
       }
   
-      const runCode = () => cond(clockRunning(clock), [
+      const runCode = () => cond(and(defined(this.clock), clockRunning(clock)), [
         timing(clock, state, config),
         cond(state.finished, [
           stopClock(clock),
@@ -176,7 +176,7 @@ class Deck extends Component {
   
       const onHandlerStateChange = event([{
         nativeEvent: ({ state }) => block([
-          cond(and(eq(state, State.END), neq(gestureState, State.END)), [
+          cond(and(defined(this.clock), eq(state, State.END), neq(gestureState, State.END)), [
             startClock(clock),
           ]),
           set(gestureState, state),
@@ -205,6 +205,7 @@ class Deck extends Component {
         procs.onPanActive(state, this.gestureState, this.cumulativeTrans, width, x, this.left),
         cond(
           and(
+            defined(this.clock),
             eq(this.gestureState, State.ACTIVE),
             neq(state, State.ACTIVE),
           ), [
@@ -217,7 +218,7 @@ class Deck extends Component {
           ),
           startClock(this.clock),
         ]),
-        cond(and(eq(state, State.ACTIVE), clockRunning(this.clock)), [
+        cond(and(defined(this.clock),eq(state, State.ACTIVE), clockRunning(this.clock)), [
           stopClock(this.clock),
           set(this.prevTrans, add(this.prevTrans, this.sprState.position)),
           procs.reset4(this.sprState.position, this.sprState.time, this.sprState.velocity, this.sprState.finished),
@@ -285,7 +286,7 @@ class Deck extends Component {
         </SafeAreaView>
         <BackButton />
         <Animated.Code>
-          {() => cond(clockRunning(this.clock), [
+          {() => cond(and(defined(this.clock), clockRunning(this.clock)), [
             spring(this.clock, this.sprState, this.sprConfig),
             cond(this.sprState.finished, [
               procs.resetSpring(this.sprState.time, this.sprState.position, this.sprState.finished, this.sprState.velocity, this.sprConfig.toValue, this.prevTrans),

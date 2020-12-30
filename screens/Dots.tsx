@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Dimensions, StyleSheet, SafeAreaView } from 'react-native';
-import Animated, { Easing } from 'react-native-reanimated';
+import Animated, { defined, Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler, LongPressGestureHandler } from 'react-native-gesture-handler';
 
 import BackButton from '../components/BackButton'
@@ -36,8 +36,6 @@ const yb = yt + dropZoneRadius
 const dotRadius = dotSize * (1 + additionalScale)
 
 const {
-  debug,
-  onChange,
   and,
   not,
   set,
@@ -151,7 +149,7 @@ class Dots extends Component {
       yb,
     )
 
-    const endClock = new Clock
+    const endClock = new Clock()
     const endDisabled = 0.01
     const endState = {
       disabled: endDisabled,
@@ -228,9 +226,9 @@ class Dots extends Component {
       scale: new Value(0.01),
     }
 
-    const endClockRunning = clockRunning(endClock)
-    const startEndClock = startClock(endClock)
-    const stopEndClock = stopClock(endClock)
+    const endClockRunning = cond(defined(endClock), clockRunning(endClock))
+    const startEndClock = cond(defined(endClock), startClock(endClock))
+    const stopEndClock = cond(defined(endClock), stopClock(endClock))
 
     const scaleVal = procs.getScale(
       endClockRunning,
@@ -247,17 +245,14 @@ class Dots extends Component {
       config: dotScaleConfig,
     }
 
-    const mainClockRunning = clockRunning(clock)
-    const startMainClock = startClock(clock)
-    const stopMainClock = stopClock(clock)
+    const mainClockRunning = cond(defined(clock), clockRunning(clock))
+    const stopMainClock = cond(defined(clock), stopClock(clock))
 
-    const ringClockRunning = clockRunning(ring.clock)
-    const startRingClock = startClock(ring.clock)
-    const stopRingClock = stopClock(ring.clock)
+    const ringClockRunning = cond(defined(ring.clock), clockRunning(ring.clock))
+    const startRingClock = cond(defined(ring.clock), startClock(ring.clock))
+    const stopRingClock = cond(defined(ring.clock), stopClock(ring.clock))
 
-    const scaleClockRunning = clockRunning(scale.clock)
-    const startScaleClock = startClock(scale.clock)
-    const stopScaleClock = stopClock(scale.clock)
+    const startScaleClock = cond(defined(scale.clock), startClock(scale.clock))
 
     const dotActive = new Value(0)
 
@@ -421,51 +416,57 @@ class Dots extends Component {
     }
 
     const runCode = () => block([
-      // Dot entering center
-      cond(
-        and(
-          intersects,
-          not(ringClockRunning),
-          neq(ring.state.position, ringScales.in),
-        ),
-        [
-          set(ring.a, 1),
-          set(ring.state.position, ringScales.disabled),
-          set(ring.config.toValue, ringScales.in),
+
+      cond(and(defined(clock), defined(ring.clock), defined(scale.clock), defined(endClock)), [
+
+        // Dot entering center
+        cond(
+          and(
+            intersects,
+            not(ringClockRunning),
+            neq(ring.state.position, ringScales.in),
+          ),
+          [
+            set(ring.a, 1),
+            set(ring.state.position, ringScales.disabled),
+            set(ring.config.toValue, ringScales.in),
+            startRingClock,
+          ]),
+        // Dot leaving center
+        cond(
+          and(
+            not(intersects),
+            not(ringClockRunning),
+            neq(ring.state.position, ringScales.disabled),
+          ), [
+          set(ring.config.toValue, ringScales.disabled),
           startRingClock,
         ]),
-      // Dot leaving center
-      cond(
-        and(
-          not(intersects),
-          not(ringClockRunning),
-          neq(ring.state.position, ringScales.disabled),
-        ), [
-        set(ring.config.toValue, ringScales.disabled),
-        startRingClock,
-      ]),
-      cond(mainClockRunning, [
-        spring(clock, dotScaleState, dotScaleConfig),
-        cond(dotScaleState.finished, [
-          stopMainClock,
-          procs.reset3(dotScaleState.finished, dotScaleState.velocity, dotScaleState.time),
-        ])
-      ]),
-      cond(endClockRunning, [
-        timing(endClock, endState, endConfig),
-        set(placeholder.scale, max(0.01, multiply(add(1, additionalScale), add(1, multiply(-1, endState.position))))),
-        cond(endState.finished, [
-          stopEndClock,
-          procs.reset4(placeholder.a, endState.finished, endState.time, endState.frameTime),
+        cond(mainClockRunning, [
+          spring(clock, dotScaleState, dotScaleConfig),
+          cond(dotScaleState.finished, [
+            stopMainClock,
+            procs.reset3(dotScaleState.finished, dotScaleState.velocity, dotScaleState.time),
+          ])
         ]),
-      ]),
-      cond(ringClockRunning, [
-        spring(ringClock, ringState, ringConfig),
-        cond(ringState.finished, [
-          stopRingClock,
-          procs.reset3(ringState.time, ringState.velocity, ringState.finished),
+        cond(endClockRunning, [
+          timing(endClock, endState, endConfig),
+          set(placeholder.scale, max(0.01, multiply(add(1, additionalScale), add(1, multiply(-1, endState.position))))),
+          cond(endState.finished, [
+            stopEndClock,
+            procs.reset4(placeholder.a, endState.finished, endState.time, endState.frameTime),
+          ]),
+        ]),
+        cond(ringClockRunning, [
+          spring(ringClock, ringState, ringConfig),
+          cond(ringState.finished, [
+            stopRingClock,
+            procs.reset3(ringState.time, ringState.velocity, ringState.finished),
+          ])
         ])
+
       ])
+
     ])
 
     return {
@@ -584,19 +585,21 @@ class Dots extends Component {
         <BackButton />
         <Animated.Code>
           {() => block([
-            cond(not(clockRunning(this.dropZoneClock)), startClock(this.dropZoneClock)),
-            timing(this.dropZoneClock, this.scaleState, this.scaleConfig),
-            cond(this.scaleState.finished, [
-              stopClock(this.dropZoneClock),
-              procs.reset4(this.scaleState.position, this.scaleState.time, this.scaleState.frameTime, this.scaleState.finished),
-              startClock(this.dropZoneClock),
-            ]),
-            cond(not(clockRunning(this.rotClock)), startClock(this.rotClock)),
-            timing(this.rotClock, this.rotState, this.rotConfig),
-            cond(this.rotState.finished, [
-              stopClock(this.rotClock),
-              procs.reset4(this.rotState.position, this.rotState.time, this.rotState.frameTime, this.rotState.finished),
-              startClock(this.rotClock),
+            cond(and(defined(this.dropZoneClock), defined(this.rotClock)), [
+              cond(not(clockRunning(this.dropZoneClock)), startClock(this.dropZoneClock)),
+              timing(this.dropZoneClock, this.scaleState, this.scaleConfig),
+              cond(this.scaleState.finished, [
+                stopClock(this.dropZoneClock),
+                procs.reset4(this.scaleState.position, this.scaleState.time, this.scaleState.frameTime, this.scaleState.finished),
+                startClock(this.dropZoneClock),
+              ]),
+              cond(not(clockRunning(this.rotClock)), startClock(this.rotClock)),
+              timing(this.rotClock, this.rotState, this.rotConfig),
+              cond(this.rotState.finished, [
+                stopClock(this.rotClock),
+                procs.reset4(this.rotState.position, this.rotState.time, this.rotState.frameTime, this.rotState.finished),
+                startClock(this.rotClock),
+              ])
             ])
           ])}
         </Animated.Code>

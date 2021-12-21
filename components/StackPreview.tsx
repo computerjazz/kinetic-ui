@@ -76,7 +76,7 @@ class StackPreview extends React.Component {
 
 
 
-    this.activeIndex = Animated.interpolate(modulo(this.cumulativeTrans, tickHeight * numCards), {
+    this.activeIndex = Animated.interpolateNode(modulo(this.cumulativeTrans, tickHeight * numCards), {
       inputRange: [0, tickHeight],
       outputRange: [0, 1],
     })
@@ -89,14 +89,14 @@ class StackPreview extends React.Component {
 
 
       const scale = new Value(1)
-      const interpolatedY = Animated.interpolate(this.cumulativeTrans, {
+      const interpolatedY = Animated.interpolateNode(this.cumulativeTrans, {
         inputRange: [-tickHeight, 0, tickHeight],
         outputRange: [sub(index, 1), index, add(index, 1)],
       })
 
       const transToIndex = modulo(interpolatedY, arr.length)
 
-      const indexToTrans = sub(Animated.interpolate([
+      const indexToTrans = sub(Animated.interpolateNode([
         transToIndex,
       ], {
         inputRange: [0, 0.5, 0.75, 1, arr.length],
@@ -116,15 +116,15 @@ class StackPreview extends React.Component {
       }
 
       const rotateX = Animated.concat(
-        Animated.interpolate(transToIndex, isAndroid ? androidConfig : iosConfig), 'deg')
+        Animated.interpolateNode(transToIndex, isAndroid ? androidConfig : iosConfig), 'deg')
 
-      const scaleXY = Animated.interpolate(transToIndex, {
+      const scaleXY = Animated.interpolateNode(transToIndex, {
         inputRange: [0, 0.25, 0.5, 1, arr.length],
         outputRange: [scale, multiply(scale, 1.2), multiply(scale, 1.24), divide(scale, 2), scale],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
 
-      const zIndex = Animated.interpolate(transToIndex, {
+      const zIndex = Animated.interpolateNode(transToIndex, {
         inputRange: [0, 0.7, 0.75, 1, arr.length],
         outputRange: [999, 999, 0, 0, 200],
         extrapolate: Animated.Extrapolate.CLAMP,

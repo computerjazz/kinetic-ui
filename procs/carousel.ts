@@ -1,16 +1,14 @@
-import Animated from 'react-native-reanimated'
-import { State } from 'react-native-gesture-handler'
-const { 
+import Animated, {
   block,
   set,
-  proc, 
+  proc,
   cond,
   or,
   abs,
   lessThan,
   eq,
   diff,
-  interpolate,
+  interpolateNode as interpolate,
   multiply,
   sub,
   add,
@@ -18,7 +16,8 @@ const {
   min,
   sin,
   divide,
-} = Animated
+} from 'react-native-reanimated'
+import { State } from 'react-native-gesture-handler'
 
 const reset4 = proc((v1, v2, v3, v4) => block([
   set(v1, 0),

@@ -1,22 +1,20 @@
-import Animated from 'react-native-reanimated'
-import { State } from 'react-native-gesture-handler'
-
-const {
+import  {
   proc,
   block,
   set,
-  multiply, 
+  multiply,
   add,
   cos,
   abs,
   cond,
   greaterThan,
   divide,
-  and, 
+  and,
   eq,
   neq,
   lessThan
-} = Animated
+}  from 'react-native-reanimated'
+import { State } from 'react-native-gesture-handler'
 
 const resetSpring = proc((time, position, finished, velocity, toValue, prevTrans) => block([
   set(time, 0),

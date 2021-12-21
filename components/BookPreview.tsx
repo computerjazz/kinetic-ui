@@ -74,13 +74,13 @@ class Book extends React.Component {
       const colorMultiplier = 255 / (arr.length)
       // const color = `rgba(${index * colorMultiplier}, ${Math.abs(128 - index * colorMultiplier)}, ${255 - (index * colorMultiplier)}, 0.9)`
 
-      const rotateY = Animated.interpolate(this.currentIndex, {
+      const rotateY = Animated.interpolateNode(this.currentIndex, {
         inputRange: [index - 1.25, index, index + 1.25],
         outputRange: [0, Math.PI / 2, Math.PI],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
 
-      const zIndex = Animated.interpolate(this.currentIndex, {
+      const zIndex = Animated.interpolateNode(this.currentIndex, {
         inputRange: [index - 1, index, index + 1],
         outputRange: [-999 - index, 999, -999 + index],
         extrapolate: Animated.Extrapolate.CLAMP,

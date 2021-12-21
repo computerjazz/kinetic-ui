@@ -24,7 +24,7 @@ let {
   event,
   abs,
   min,
-  interpolate,
+  interpolateNode: interpolate,
   proc,
 } = Animated;
 

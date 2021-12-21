@@ -1,11 +1,9 @@
-import { Dimensions } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { State } from 'react-native-gesture-handler'
-const { width } = Dimensions.get('window')
 
 let {
   cond,
-  interpolate,
+  interpolateNode: interpolate,
   proc,
   multiply, 
   add, 
@@ -21,7 +19,6 @@ let {
   not,
   neq, 
   eq,
-  debug 
 } = Animated
 
 if (!proc) {

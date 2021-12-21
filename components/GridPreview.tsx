@@ -65,7 +65,7 @@ class GridPreview extends React.Component {
     this.screenY = new Value(0)
     this.clock = new Clock()
 
-    this.panRatio = Animated.interpolate(this.pan, {
+    this.panRatio = Animated.interpolateNode(this.pan, {
       inputRange: [0, engageDist],
       outputRange: [0, 1],
       extrapolate: Animated.Extrapolate.CLAMP,

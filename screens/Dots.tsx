@@ -1,6 +1,26 @@
 import React, { Component } from 'react';
 import { Dimensions, StyleSheet, SafeAreaView } from 'react-native';
-import Animated, { defined, Easing } from 'react-native-reanimated';
+import Animated, { defined, Easing,
+  and,
+  not,
+  set,
+  neq,
+  cond,
+  add,
+  multiply,
+  block,
+  startClock,
+  stopClock,
+  clockRunning,
+  sub,
+  event,
+  round,
+  abs,
+  color,
+  Value,
+  Clock,
+  max,
+} from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler, LongPressGestureHandler } from 'react-native-gesture-handler';
 
 import BackButton from '../components/BackButton'
@@ -34,28 +54,6 @@ const xr = xl + dropZoneRadius
 const yt = height / 2 - dropZoneRadius / 2
 const yb = yt + dropZoneRadius
 const dotRadius = dotSize * (1 + additionalScale)
-
-const {
-  and,
-  not,
-  set,
-  neq,
-  cond,
-  add,
-  multiply,
-  block,
-  startClock,
-  stopClock,
-  clockRunning,
-  sub,
-  event,
-  round,
-  abs,
-  color,
-  Value,
-  Clock,
-  max,
-} = Animated;
 
 class Dots extends Component {
 

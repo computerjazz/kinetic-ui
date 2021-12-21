@@ -113,7 +113,7 @@ class Deck extends Component {
       previewState.position
     ]
 
-    const ry = Animated.interpolate(runClock, {
+    const ry = Animated.interpolateNode(runClock, {
       inputRange: [0, height],
       outputRange: [0, 1],
     })
@@ -143,7 +143,7 @@ class Deck extends Component {
       const scaleMultiplier = 1 - (i * (1 / arr.length))
 
 
-      const iy = Animated.interpolate(ry, {
+      const iy = Animated.interpolateNode(ry, {
         inputRange: [-0.5, 0, 0.5],
         outputRange: [-maxY, i * 5, maxY],
       })
@@ -153,12 +153,12 @@ class Deck extends Component {
         abs(add(multiply(ry, cos(ratio), -xOffset), multiply(ry, xOffset))),
         -1)
 
-      const rotateZ = Animated.interpolate(ry, {
+      const rotateZ = Animated.interpolateNode(ry, {
         inputRange: [0, 1],
         outputRange: [0, multiplier * Math.PI / 2],
       })
 
-      const scale = Animated.interpolate(ry, {
+      const scale = Animated.interpolateNode(ry, {
         inputRange: [-0.5, 0, 0.5],
         outputRange: [1, 1 + scaleMultiplier * 0.1, 1],
       })
@@ -220,7 +220,7 @@ class Deck extends Component {
       state.position,
     ])
 
-    const ic = Animated.interpolate(runClock, {
+    const ic = Animated.interpolateNode(runClock, {
       inputRange: [0, 0.5, 1],
       outputRange: [0, 0.1, 0],
     })

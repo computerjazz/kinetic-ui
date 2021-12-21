@@ -2,7 +2,6 @@ import Animated from 'react-native-reanimated'
 import { State } from 'react-native-gesture-handler'
 
 const {
-  debug,
   proc,
   block,
   set,

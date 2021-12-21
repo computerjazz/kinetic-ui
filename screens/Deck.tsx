@@ -1,14 +1,6 @@
 import React, { Component } from 'react'
 import { View, Dimensions, Text, SafeAreaView, StyleProp, ViewStyle } from 'react-native'
-import Animated, { defined, Easing } from 'react-native-reanimated';
-import { PanGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, State, TapGestureHandler, TapGestureHandlerStateChangeEvent } from 'react-native-gesture-handler';
-import BackButton from '../components/BackButton'
-import spring from '../procs/springFill'
-import timingFill from '../procs/timingFill'
-import procs from '../procs/deck'
-const { width, height } = Dimensions.get('window');
-const { inOut: timing } = timingFill
-const {
+import Animated, { defined, Easing,
   and,
   set,
   neq,
@@ -22,8 +14,15 @@ const {
   Value,
   Clock,
   event,
-  interpolate,
-} = Animated;
+  interpolateNode as interpolate,
+} from 'react-native-reanimated';
+import { PanGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, State, TapGestureHandler, TapGestureHandlerStateChangeEvent } from 'react-native-gesture-handler';
+import BackButton from '../components/BackButton'
+import spring from '../procs/springFill'
+import timingFill from '../procs/timingFill'
+import procs from '../procs/deck'
+const { width, height } = Dimensions.get('window');
+const { inOut: timing } = timingFill
 
 const numCards = 7
 
@@ -147,12 +146,13 @@ class Deck extends Component {
   
       const color = `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`
       const scaleXY = add(scale, ic)
+
       const style = {
-        alignItems: 'center' as const,
-        justifyContent: 'center' as const,
-        position: 'absolute' as const,
         width: size,
         height: size / 2,
+        justifyContent: 'center',
+        position: 'absolute',
+        alignItems: "center",
         backgroundColor: color,
         borderRadius: 10,
         zIndex: -i,

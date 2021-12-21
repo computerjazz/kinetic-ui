@@ -1,8 +1,6 @@
 import * as React from 'react'
-import { View, Platform, Text, StyleSheet } from 'react-native'
+import { View, Platform, Text } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated'
-import { Transition } from 'react-navigation-fluid-transitions'
-import MenuTitle from './MenuTitle';
 const {
   Value,
   modulo,
@@ -117,7 +115,7 @@ class CarouselPreview extends React.Component {
       const index = new Value(i)
 
 
-      const interpolated = Animated.interpolate(cumulativeTrans, {
+      const interpolated = Animated.interpolateNode(cumulativeTrans, {
         inputRange: [-tickWidth, 0, tickWidth],
         outputRange: [sub(index, 1), index, add(index, 1)],
       })
@@ -128,7 +126,7 @@ class CarouselPreview extends React.Component {
         interpolated], arr.length)
 
       const rotateX = multiply(min(0.2, abs(add(leanAmt, this.altState.position))), -1)
-      const rotateY = Animated.interpolate(transToIndex, {
+      const rotateY = Animated.interpolateNode(transToIndex, {
         inputRange: [0, numCards],
         outputRange: [0, Math.PI * 2],
       })
@@ -140,7 +138,7 @@ class CarouselPreview extends React.Component {
         multiply(0.2, sin(add(Math.PI / 2, rotateY))),
       )
 
-      const zIndex = Animated.interpolate(transToIndex, {
+      const zIndex = Animated.interpolateNode(transToIndex, {
         inputRange: [0, arr.length / 2, arr.length],
         outputRange: [200, 0, 200],
         extrapolate: Animated.Extrapolate.CLAMP,

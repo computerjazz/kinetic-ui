@@ -1,14 +1,6 @@
 import React, { Component } from 'react'
 import { View, Dimensions, Platform, SafeAreaView } from 'react-native'
-import Animated from 'react-native-reanimated';
-import { PanGestureHandler, State, TapGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, TapGestureHandlerStateChangeEvent } from 'react-native-gesture-handler';
-import BackButton from '../components/BackButton'
-
-const { width, height } = Dimensions.get('window');
-const isAndroid = Platform.OS === 'android'
-import spring from '../procs/springFill'
-import procs from '../procs/stack'
-const {
+import Animated, {
   and,
   not,
   set,
@@ -25,9 +17,16 @@ const {
   Clock,
   event,
   modulo,
-  interpolate,
+  interpolateNode as interpolate,
   concat,
-} = Animated;
+} from 'react-native-reanimated';
+import { PanGestureHandler, State, TapGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, TapGestureHandlerStateChangeEvent } from 'react-native-gesture-handler';
+import BackButton from '../components/BackButton'
+
+const { width, height } = Dimensions.get('window');
+const isAndroid = Platform.OS === 'android'
+import spring from '../procs/springFill'
+import procs from '../procs/stack'
 
 const numCards = 7
 const tickHeight = height * 0.75
@@ -200,13 +199,13 @@ class CardStack extends Component {
   }
 
   componentDidMount() {
-    this.willBlurSub = this.props.navigation.addListener('willBlur', () => {
+    this.willBlurSub = this.props.navigation.addListener('blur', () => {
       this._mounted.setValue(0)
     })
   }
 
   componentWillUnmount() {
-    this.willBlurSub && this.willBlurSub.remove()
+    this.willBlurSub?.remove?.()
   }
 
   render() {

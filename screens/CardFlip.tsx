@@ -101,12 +101,12 @@ class Card extends Component {
     const cumulativeY = add(prevY, this.translationY)
     const cumulativeX = add(prevX, this.translationX)
 
-    const sizeInterpolatedY = Animated.interpolate(cumulativeY, {
+    const sizeInterpolatedY = Animated.interpolateNode(cumulativeY, {
       inputRange: [-size, 0, size],
       outputRange: [180, 0, -180],
     })
 
-    const sizeInterpolatedX = Animated.interpolate(cumulativeX, {
+    const sizeInterpolatedX = Animated.interpolateNode(cumulativeX, {
       inputRange: [-size, 0, size],
       outputRange: [-180, 0, 180],
     })
@@ -221,12 +221,12 @@ class Card extends Component {
       this.tapSpr.position
     ]
 
-    this.scale = Animated.interpolate(this.runClock, {
+    this.scale = Animated.interpolateNode(this.runClock, {
       inputRange: [0, 0.5, 1],
       outputRange: [1, 1.1, 1],
     })
 
-    this.shadowScale = Animated.interpolate(this.runClock, {
+    this.shadowScale = Animated.interpolateNode(this.runClock, {
       inputRange: [0, 0.5, 1],
       outputRange: [1, .95, 1],
     })

@@ -2,7 +2,7 @@ import { Dimensions } from 'react-native'
 import Animated from 'react-native-reanimated'
 const { width } = Dimensions.get('window')
 
-let { interpolate, proc, multiply, add, sub, block, set, abs } = Animated
+let { interpolateNode: interpolate, proc, multiply, add, sub, block, set, abs } = Animated
 
 if (!proc) {
   proc = fn => fn

@@ -1,8 +1,6 @@
 import * as React from 'react'
-import { View, Platform, Text, StyleSheet } from 'react-native'
+import { View, Platform, Text } from 'react-native'
 import Animated, { Easing } from 'react-native-reanimated'
-import { Transition } from 'react-navigation-fluid-transitions'
-import MenuTitle from './MenuTitle';
 const {
   Value,
   modulo,
@@ -15,21 +13,16 @@ const {
   clockRunning,
   cond,
   set,
-  Clock,
-  debug,
   timing,
   round,
   color,
-  block,
   floor,
   abs,
 } = Animated
 
-const isAndroid = Platform.OS === 'android'
-
 class FlipPreview extends React.Component {
 
-  constructor({ clock, focused, width, height }) {
+  constructor({ clock, focused, width }) {
     super()
     const size = width / 2
     const numCards = 7
@@ -80,12 +73,12 @@ class FlipPreview extends React.Component {
       cond(focused, runClock, 0)
     )
 
-    this._iy = Animated.interpolate(this._cy, {
+    this._iy = Animated.interpolateNode(this._cy, {
       inputRange: [-size, 0, size],
       outputRange: [180, 0, -180],
     })
 
-    this._ix = Animated.interpolate(this._cx, {
+    this._ix = Animated.interpolateNode(this._cx, {
       inputRange: [-size, 0, size],
       outputRange: [-180, 0, 180],
     })
@@ -158,13 +151,13 @@ class FlipPreview extends React.Component {
           backgroundColor: color,
           borderRadius: 10,
           zIndex,
-          transform: [{
-            perspective: new Value(850),
-            translateY,
-            scaleX: scale,
-            scaleY: scale,
-            rotateX,
-          }]
+          transform: [
+            {perspective: new Value(850)},
+            {translateY},
+            {scaleX: scale},
+            {scaleY: scale},
+            {rotateX},
+          ]
         }}
       >
         <Animated.View style={{ flex: 1, width: size }}>

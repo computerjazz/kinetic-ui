@@ -2,10 +2,11 @@ import React from 'react'
 import { Dimensions, View, StyleSheet, Text, SafeAreaView } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { PanGestureHandler, State, TapGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, TapGestureHandlerStateChangeEvent } from 'react-native-gesture-handler'
-
 import BackButton from '../components/BackButton'
-
+import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 const { width: screenWidth } = Dimensions.get("window")
+
+type Props = { navigation: NativeStackNavigationProp<any> }
 
 const {
   and,
@@ -42,7 +43,7 @@ const {
 const numCards = 7
 const rampDist = 100
 
-class Book extends React.Component {
+class Book extends React.Component<Props> {
 
   _mounted: Animated.Value<number>
   perspective: Animated.Value<number>
@@ -79,7 +80,7 @@ class Book extends React.Component {
     this.gestureState = new Value(State.UNDETERMINED)
     this.absPan = new Value(0)
 
-    this.panPct = Animated.interpolate(this.absPan, {
+    this.panPct = Animated.interpolateNode(this.absPan, {
       inputRange: [0, rampDist],
       outputRange: [0, 1],
       extrapolate: Animated.Extrapolate.CLAMP,
@@ -170,13 +171,13 @@ class Book extends React.Component {
       const colorMultiplier = 255 / (arr.length)
       // const color = `rgba(${index * colorMultiplier}, ${Math.abs(128 - index * colorMultiplier)}, ${255 - (index * colorMultiplier)}, 0.9)`
 
-      const rotateY = Animated.interpolate(this.currentIndex, {
+      const rotateY = Animated.interpolateNode(this.currentIndex, {
         inputRange: [index - 1.25, index, index + 1.25],
         outputRange: [0, Math.PI / 2, Math.PI],
         extrapolate: Animated.Extrapolate.CLAMP,
       })
 
-      const zIndex = Animated.interpolate(this.currentIndex, {
+      const zIndex = Animated.interpolateNode(this.currentIndex, {
         inputRange: [index - 1, index, index + 1],
         outputRange: [-999 - index, 999, -999 + index],
         extrapolate: Animated.Extrapolate.CLAMP,
@@ -325,13 +326,13 @@ class Book extends React.Component {
   }
 
   componentDidMount() {
-    this.willBlurSub = this.props.navigation.addListener('willBlur', () => {
+    this.willBlurSub = this.props.navigation.addListener('blur', () => {
       this._mounted.setValue(0)
     })
   }
 
   componentWillUnmount() {
-    this.willBlurSub && this.willBlurSub.remove()
+    this.willBlurSub?.remove?.()
   }
 
   renderCard = ({ color, width, height, rotateY, zIndex }, index) => {

@@ -48,7 +48,7 @@ class Card extends Component {
 
 
     this.rotateX = Animated.concat(
-      Animated.interpolate(this.translationY, {
+      Animated.interpolateNode(this.translationY, {
         inputRange: [-height / 2, 0, height / 2],
         outputRange: [180, 0, -180],
         extrapolate: Animated.Extrapolate.CLAMP,
@@ -57,7 +57,7 @@ class Card extends Component {
     )
 
     this.rotateY = Animated.concat(
-      Animated.interpolate(this.translationX, {
+      Animated.interpolateNode(this.translationX, {
         inputRange: [-width, 0, width],
         outputRange: [-180, 0, 180],
         extrapolate: Animated.Extrapolate.CLAMP,

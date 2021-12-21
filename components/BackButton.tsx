@@ -1,19 +1,20 @@
+import { useNavigation } from '@react-navigation/core'
 import React from 'react'
-import { TouchableOpacity, Text, SafeAreaView, View } from 'react-native'
-import { withNavigation } from 'react-navigation'
+import { TouchableOpacity, Text, SafeAreaView } from 'react-native'
 
 type Props = {
   color?: string,
 }
 
-const BackButton = ({ color, navigation }: Props) => {
+const BackButton = ({ color }: Props) => {
+  const navigation = useNavigation()
   return (
       <SafeAreaView 
         style={{ position: 'absolute' }}
         >
           <TouchableOpacity
             style={{ padding: 20 }}
-            onPress={() => navigation.goBack(null)}
+            onPress={() => navigation.goBack()}
           >
             <Text 
               style={{ 
@@ -29,4 +30,4 @@ const BackButton = ({ color, navigation }: Props) => {
   )
 }
 
-export default withNavigation(BackButton)
+export default BackButton

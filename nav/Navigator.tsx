@@ -1,7 +1,7 @@
-import { createStackNavigator, createAppContainer } from 'react-navigation'
+import React from 'react'
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import Flower from '../screens/Flower'
-import Lanterns from '../screens/Lanterns'
 import Menu from '../screens/Menu'
 import Dots from '../screens/Dots'
 import CardRotate from '../screens/CardRotate'
@@ -12,27 +12,31 @@ import Deck from '../screens/Deck'
 import Grid from '../screens/Grid'
 import Book from '../screens/Book'
 import { transitionConfig } from './transitions'
+const Stack = createNativeStackNavigator();
 
-const Stack = createStackNavigator({
-  Flower: Flower,
-  Menu: Menu,
-  Lanterns: Lanterns,
-  Dots: Dots,
+const screens = {
+  Menu,
+  Dots,
   Card: CardRotate,
   Stack: CardStack,
-  Carousel: Carousel,
-  Deck: Deck,
+  Carousel,
+  Deck,
   Flip: CardFlip,
-  Grid: Grid,
-  Book: Book,
-}, {
-  initialRouteName: 'Menu',
-  headerMode: 'none',
-  defaultNavigationOptions: {
-    gesturesEnabled: false,
-  },
-  transitionConfig,
-})
+  Grid,
+  Book,
+}
 
-const Navigator = createAppContainer(Stack)
-export default Navigator
+export default function Navigator() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator 
+        initialRouteName='Menu'
+        screenOptions={{ headerShown: false }}
+        >
+        {Object.entries(screens).map(([k, v]) => {
+          return <Stack.Screen name={k} component={v} />
+        })}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}

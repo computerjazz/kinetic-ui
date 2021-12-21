@@ -1,15 +1,6 @@
 import React, { Component } from 'react'
 import { View, Dimensions } from 'react-native'
-import Animated, { Easing } from 'react-native-reanimated';
-import { PanGestureHandler, State, TapGestureHandler, TapGestureHandlerStateChangeEvent, PanGestureHandlerStateChangeEvent, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
-
-const { width } = Dimensions.get('window');
-import spring from '../procs/springFill'
-import procs from '../procs/carousel'
-
-import { NavigationStackScreenProps } from 'react-navigation'
-
-const {
+import Animated, { Easing, 
   debug,
   onChange,
   and,
@@ -32,7 +23,15 @@ const {
   event,
   abs,
   diff,
-} = Animated;
+} from 'react-native-reanimated';
+import { PanGestureHandler, State, TapGestureHandler, TapGestureHandlerStateChangeEvent, PanGestureHandlerStateChangeEvent, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
+
+const { width } = Dimensions.get('window');
+import spring from '../procs/springFill'
+import procs from '../procs/carousel'
+
+import { NavigationStackScreenProps } from 'react-navigation'
+
 
 import BackButton from '../components/BackButton'
 
@@ -297,13 +296,13 @@ class Carousel extends Component<Props> {
   }
 
   componentDidMount() {
-    this.willBlurSub = this.props.navigation.addListener('willBlur', () => {
+    this.willBlurSub = this.props.navigation.addListener('blur', () => {
       this._mounted.setValue(0)
     })
   }
 
   componentWillUnmount() {
-    this.willBlurSub && this.willBlurSub.remove()
+    this.willBlurSub?.remove?.()
   }
 
   render() {

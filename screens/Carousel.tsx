@@ -1,7 +1,6 @@
-import React, { Component } from 'react'
-import { View, Dimensions } from 'react-native'
-import Animated, { Easing, 
-  debug,
+import React, { Component, useRef } from 'react'
+import { View, Dimensions, Platform } from 'react-native'
+import Animated, { EasingNode as Easing, 
   onChange,
   and,
   not,
@@ -23,17 +22,20 @@ import Animated, { Easing,
   event,
   abs,
   diff,
+  call,
+  concat,
 } from 'react-native-reanimated';
-import { PanGestureHandler, State, TapGestureHandler, TapGestureHandlerStateChangeEvent, PanGestureHandlerStateChangeEvent, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
+import { GestureDetector, PanGestureHandler, PinchGestureHandler, RotationGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
+
+const isAndroid = Platform.OS === "android"
 
 const { width } = Dimensions.get('window');
 import spring from '../procs/springFill'
 import procs from '../procs/carousel'
 
-import { NavigationStackScreenProps } from 'react-navigation'
-
 
 import BackButton from '../components/BackButton'
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 const numCards = 7
 const tickWidth = width / 2
@@ -41,7 +43,7 @@ const size = width * 0.8
 const maxIndex = numCards - 1
 const colorMultiplier = 255 / maxIndex
 
-type Props = NavigationStackScreenProps<any>
+type Props = NativeStackScreenProps<any>
 
 class Carousel extends Component<Props> {
 
@@ -68,6 +70,7 @@ class Carousel extends Component<Props> {
   animConfig: Animated.TimingConfig = {
     toValue: new Value(0),
     duration: new Value(5000),
+    //@ts-ignore 
     easing: Easing.out(Easing.ease),
   }
   altState: Animated.SpringState = {
@@ -97,6 +100,7 @@ class Carousel extends Component<Props> {
         set(this.tapGestureState, state),
         onChange(this.tapGestureState, [
           cond(eq(this.tapGestureState, State.BEGAN), [
+            //@ts-ignore 
             set(this.animConfig.toValue, 0),
             cond(clockRunning(this.clock), [
               set(this.altState.position, this._prevLeanAmt),
@@ -113,6 +117,7 @@ class Carousel extends Component<Props> {
 
   onPanStateChange = event([{
     nativeEvent: ({ state }) => block([
+      
       set(this.panGestureState, state),
       onChange(this.panGestureState, [
         cond(eq(this.panGestureState, State.ACTIVE), [
@@ -131,6 +136,7 @@ class Carousel extends Component<Props> {
               procs.reset4(this.animState.time, this.animState.position, this.animState.frameTime, this.animState.finished),
             ]),
             cond(greaterThan(abs(this.animConfig.toValue), 0), [
+              //@ts-ignore 
               set(this.animConfig.duration, 5000),
               procs.reset4(this.animState.time, this.animState.position, this.animState.frameTime, this.animState.finished),
               startClock(this.clock),
@@ -145,6 +151,7 @@ class Carousel extends Component<Props> {
     nativeEvent: ({ translationX: x, velocityX }) => block([
       cond(eq(this.panGestureState, State.ACTIVE), [
         set(this.translationX, x),
+        //@ts-ignore 
         set(this.animConfig.toValue, velocityX),
       ])
     ])
@@ -213,22 +220,22 @@ class Carousel extends Component<Props> {
       ])
     }])
     
-    const innerTransform = [{
-      perspective: this.perspective,
-      translateY: cond(clockRunning(cardClock), [
+    const innerTransform = [
+      {perspective: this.perspective},
+      {translateY: cond(clockRunning(cardClock), [
         spring(cardClock, cardState, cardConfig),
         multiply(add(translateY, cardTransY), cardState.position),
-      ], add(translateY, cardTransY)),
-      rotateY,
-      rotateX,
-    }]
+      ], add(translateY, cardTransY))},
+      {rotateY: isAndroid ? concat(rotateY, "deg") : rotateY},
+      {rotateX: isAndroid ? concat(rotateX, "deg") : rotateX},
+   ]
 
-    const outerTransform = [{
-      perspective: this.perspective,
-      translateX,
-      scaleX: scaleXY,
-      scaleY: scaleXY,
-    }]
+    const outerTransform = [
+      {perspective: this.perspective},
+      {translateX},
+      {scaleX: scaleXY},
+      {scaleY: scaleXY},
+    ]
 
     const outerStyle = {
       zIndex,

@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { View, Dimensions, Text, Platform, StyleSheet } from 'react-native'
-import Animated, { Easing } from 'react-native-reanimated';
+import Animated, { EasingNode as Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 import BackButton from '../components/BackButton'
 import MenuTitle from './MenuTitle';
@@ -241,13 +241,13 @@ class Deck extends Component {
           borderRadius: 10,
           zIndex,
           opacity: 0.8,
-          transform: [{
-            translateY,
-            translateX,
-            scaleX: scaleXY,
-            scaleY: scaleXY,
-            rotateZ,
-          }]
+          transform: [
+            {translateY},
+            {translateX},
+            {scaleX: scaleXY},
+           { scaleY: scaleXY},
+            {rotateZ},
+          ]
         }}
       >
         <Animated.View style={{

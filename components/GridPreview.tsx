@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Dimensions, View, StyleSheet, Text } from 'react-native'
-import Animated, { Easing } from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import BackButton from '../components/BackButton'
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import MenuTitle from './MenuTitle'
@@ -82,8 +82,8 @@ class GridPreview extends React.Component {
         size: cardSize,
         padding,
         color,
-        rotateX: 0,
-        rotateY: 0,
+        rotateX: "0deg",
+        rotateY: "0deg",
         scale: 1
       }
     })
@@ -104,12 +104,12 @@ class GridPreview extends React.Component {
             flex: 1,
             backgroundColor: color,
             borderRadius: size / 10,
-            transform: [{
-              rotateX,
-              rotateY,
-              scaleX: scale,
-              scaleY: scale,
-            }]
+            transform: [
+              {rotateX},
+              {rotateY},
+              {scaleX: scale},
+              {scaleY: scale},
+            ]
           }}
         >
           <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>{}</Text>

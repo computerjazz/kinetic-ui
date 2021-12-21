@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Dimensions, StyleSheet, SafeAreaView } from 'react-native';
-import Animated, { defined, Easing,
+import Animated, { defined, EasingNode as Easing,
   and,
   not,
   set,
@@ -360,10 +360,10 @@ class Dots extends Component {
       width: dotSize,
       height: dotSize,
       zIndex,
-      transform: [{
-        translateX: x.translate,
-        translateY: y.translate,
-      }]
+      transform: [
+       { translateX: x.translate},
+        {translateY: y.translate},
+      ]
     }
 
     const innerStyle = {
@@ -373,10 +373,10 @@ class Dots extends Component {
       height: dotSize,
       borderRadius: dotSize / 2,
       backgroundColor: dotColor,
-      transform: [{
-        scaleX: scale.value,
-        scaleY: scale.value,
-      }]
+      transform: [
+        {scaleX: scale.value},
+        {scaleY: scale.value},
+      ]
     }
 
     const placeholderStyle = {
@@ -387,12 +387,12 @@ class Dots extends Component {
       borderRadius: dotSize / 2,
       backgroundColor: placeholder.color,
       zIndex: 999,
-      transform: [{
-        translateX: placeholder.x,
-        translateY: placeholder.y,
-        scaleX: placeholder.scale,
-        scaleY: placeholder.scale,
-      }]
+      transform: [
+        {translateX: placeholder.x},
+        {translateY: placeholder.y},
+        {scaleX: placeholder.scale},
+        {scaleY: placeholder.scale},
+      ]
     }
 
     const ringStyle = {
@@ -405,12 +405,12 @@ class Dots extends Component {
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 20,
-      transform: [{
-        translateX,
-        translateY,
-        scaleX: ring.scale,
-        scaleY: ring.scale,
-      }]
+      transform: [
+        {translateX},
+        {translateY},
+        {scaleX: ring.scale},
+        {scaleY: ring.scale},
+      ]
     }
 
     const runCode = () => block([
@@ -559,13 +559,13 @@ class Dots extends Component {
           borderStyle: 'dotted',
           backgroundColor: 'seashell',
           borderColor: '#ccc',
-          transform: [{
-            translateX,
-            translateY,
-            rotate: this.rotState.position,
-            scaleX: this.dropZoneScale,
-            scaleY: this.dropZoneScale,
-          }]
+          transform: [
+            {translateX},
+            {translateY},
+            {rotate: this.rotState.position},
+            {scaleX: this.dropZoneScale},
+            {scaleY: this.dropZoneScale},
+          ]
         }}
       />
     )

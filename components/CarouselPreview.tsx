@@ -206,12 +206,12 @@ class CarouselPreview extends React.Component {
           justifyContent: 'center',
           width: size / 3.5,
           height: size,
-          transform: [{
-            perspective,
-            translateX,
-            scaleX: scale,
-            scaleY: scale,
-          }]
+          transform: [
+            {perspective},
+            {translateX},
+            {scaleX: scale},
+           { scaleY: scale},
+        ]
         }}>
         <Animated.View
           style={{
@@ -223,12 +223,12 @@ class CarouselPreview extends React.Component {
             backgroundColor: color,
             borderRadius: 10,
             zIndex,
-            transform: [{
-              perspective,
-              translateY: add(translateY, cardTransY),
-              rotateY,
-              rotateX,
-            }]
+            transform: [
+              {perspective},
+              {translateY: add(translateY, cardTransY)},
+              {rotateY},
+              {rotateX},
+        ]
           }}
         >
           <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>{}</Text>

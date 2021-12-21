@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
-import { View, Dimensions, Text, SafeAreaView, StyleProp, ViewStyle } from 'react-native'
-import Animated, { defined, Easing,
+import { View, Dimensions, SafeAreaView } from 'react-native'
+import Animated, { defined, EasingNode as Easing,
   and,
   set,
   neq,
@@ -157,13 +157,13 @@ class Deck extends Component {
         borderRadius: 10,
         zIndex: -i,
         opacity: 0.8,
-        transform: [{
-          translateY: iy,
-          translateX: procs.getDirectionalVal(this.left, ix),
-          rotateZ: procs.getDirectionalVal(this.left, rotateZ),
-          scaleX: scaleXY,
-          scaleY: scaleXY,
-        }]
+        transform: [
+          {translateY: iy},
+          {translateX: procs.getDirectionalVal(this.left, ix)},
+          {rotateZ: procs.getDirectionalVal(this.left, rotateZ)},
+          {scaleX: scaleXY},
+          {scaleY: scaleXY},
+        ]
       }
   
       const runCode = () => cond(and(defined(this.clock), clockRunning(clock)), [

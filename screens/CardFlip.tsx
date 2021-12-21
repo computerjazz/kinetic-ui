@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { View, Dimensions, Text } from 'react-native'
-import Animated from 'react-native-reanimated';
+import Animated, { concat } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 
 const { width, height } = Dimensions.get('window');
@@ -236,11 +236,11 @@ class Card extends Component {
         cond(eq(this.gestureState, State.ACTIVE), [
           set(diff, sub(rawX, x)),
           set(rawX, x),
-          set(this.translationX, 
-            cond(isInverted, 
-              add(this.translationX, diff), 
+          set(this.translationX,
+            cond(isInverted,
+              add(this.translationX, diff),
               sub(this.translationX, diff)
-          )),
+            )),
           set(this.translationY, y),
         ])
       ])
@@ -294,13 +294,12 @@ class Card extends Component {
                 borderRadius: 5,
                 zIndex: -999,
                 transform: [
-                  {
-                    perspective: this.perspective,
-                    rotateX: this._x,
-                    rotateY: this._y,
-                    scaleX: this.shadowScale,
-                    scaleY: this.shadowScale,
-                  }]
+                  { perspective: this.perspective },
+                  { rotateY: concat(this._y, "deg") },
+                  { rotateX: concat(this._x, "deg") },
+                  { scaleX: this.shadowScale },
+                  { scaleY: this.shadowScale },
+                ]
               }}
             />
             <TapGestureHandler
@@ -316,16 +315,15 @@ class Card extends Component {
                   backgroundColor: this.color,
                   borderRadius: 5,
                   transform: [
-                    {
-                      perspective: this.perspective,
-                      rotateX: this._x,
-                      rotateY: this._y,
-                      scaleX: this.scale,
-                      scaleY: this.scale,
-                    }]
+                    { perspective: this.perspective },
+                    { rotateY: concat(this._y, "deg") },
+                    { rotateX: concat(this._x, "deg") },
+                    { scaleX: this.scale },
+                    { scaleY: this.scale },
+                  ]
                 }}
               >
-                <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white' }}>{}</Text>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white' }}>{ }</Text>
               </Animated.View>
             </TapGestureHandler>
           </Animated.View>

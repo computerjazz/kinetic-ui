@@ -1,6 +1,6 @@
 import React from 'react'
-import { Dimensions, View, SafeAreaView, StyleSheet } from 'react-native'
-import Animated from 'react-native-reanimated'
+import { Dimensions, View, SafeAreaView, StyleSheet, Platform } from 'react-native'
+import Animated, { concat } from 'react-native-reanimated'
 import BackButton from '../components/BackButton'
 import { PanGestureHandler, State, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import { Procs } from '../procs/grid';
@@ -30,7 +30,9 @@ let {
 
 if (!proc) {
   proc = (fn) => fn
-} 
+}
+
+const isAndroid = Platform.OS === "android"
 
 const cardsPerRow = 8
 const engageDist = width / 8
@@ -104,15 +106,11 @@ class Grid extends React.Component<Props> {
     const multiplier = min(add(this.panRatio, this.sprState.position), 1)
     const colorMultiplier = 255 / numCards
 
-    const t = Date.now()
-
     this.cards = [...Array(numCards)].fill(0).map((_d, i) => {
       const row = Math.floor(i / cardsPerRow)
       const col = i - (cardsPerRow * row)
       const centerY = cardSize * row + cardSize / 2
       const centerX = cardSize * col + cardSize / 2
-      // console.log(`[${row}, ${col}]`)
-
       const diffXRatio = Procs.diffXRatio(centerX, this.screenX)
       const diffYRatio = Procs.diffYRatio(centerY, this.screenY)
 
@@ -128,8 +126,6 @@ class Grid extends React.Component<Props> {
         scale: Procs.scale(pctX, pctY, multiplier)
       }
     })
-
-    console.log('CREATED DCARDS', Date.now() - t)
 
     this.onGestureEvent = event([{
       nativeEvent: ({ translationX, translationY, x, y }) => block([
@@ -159,10 +155,6 @@ class Grid extends React.Component<Props> {
     }])
   }
 
-  componentDidMount = () => {
-    console.log(`tt-mount -- ${Date.now() - this.mountTimer}`)
-  }
-
   renderCard = ({ color, rotateX, rotateY, scale }, index) => {
     return (
       <View
@@ -177,12 +169,12 @@ class Grid extends React.Component<Props> {
             flex: 1,
             backgroundColor: color,
             borderRadius: cardSize / 10,
-            transform: [{
-              rotateX,
-              rotateY,
-              scaleX: scale,
-              scaleY: scale,
-            }]
+            transform: [
+              { rotateX: isAndroid ? concat(rotateX, "deg") : rotateX },
+              { rotateY: isAndroid ? concat(rotateY, "deg") : rotateY },
+              { scaleX: scale },
+              { scaleY: scale },
+            ]
           }}
         />
       </View>

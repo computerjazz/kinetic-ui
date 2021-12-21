@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { View, Platform, Text } from 'react-native'
-import Animated, { Easing } from 'react-native-reanimated'
+import { View, Text } from 'react-native'
+import Animated, { concat, EasingNode as Easing } from 'react-native-reanimated'
 const {
   Value,
   modulo,
@@ -152,11 +152,11 @@ class FlipPreview extends React.Component {
           borderRadius: 10,
           zIndex,
           transform: [
-            {perspective: new Value(850)},
-            {translateY},
-            {scaleX: scale},
-            {scaleY: scale},
-            {rotateX},
+            { perspective: new Value(850) },
+            { translateY },
+            { scaleX: scale },
+            { scaleY: scale },
+            { rotateX },
           ]
         }}
       >
@@ -166,7 +166,7 @@ class FlipPreview extends React.Component {
             fontSize: 70,
             fontWeight: 'bold',
           }}>
-            {}
+            { }
           </Text>
         </Animated.View>
       </Animated.View>
@@ -198,11 +198,11 @@ class FlipPreview extends React.Component {
             borderRadius: 5,
             zIndex: -999,
             transform: [
-              {
-                perspective: this.perspective,
-                rotateX: this._x,
-                rotateY: this._y,
-              }]
+
+              { perspective: this.perspective },
+              { rotateX: this._x },
+              { rotateY: this._y },
+            ]
           }}
         />
         <Animated.View
@@ -215,11 +215,11 @@ class FlipPreview extends React.Component {
             backgroundColor: this.color,
             borderRadius: 5,
             transform: [
-              {
-                perspective: this.perspective,
-                rotateX: this._x,
-                rotateY: this._y,
-              }]
+
+              { perspective: this.perspective },
+              { rotateX: concat(this._x, "deg") },
+              { rotateY: concat(this._y, "deg") },
+            ]
           }}
         />
       </View>

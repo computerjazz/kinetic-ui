@@ -168,13 +168,13 @@ class StackPreview extends React.Component {
           backgroundColor: color,
           borderRadius: 10,
           zIndex,
-          transform: [{
-            perspective,
-            translateY,
-            scaleX: scale,
-            scaleY: scale,
-            rotateX,
-          }]
+          transform: [
+            {perspective},
+            {translateY},
+            {scaleX: scale},
+            {scaleY: scale},
+            {rotateX},
+          ]
         }}
       >
         <Animated.View style={{ flex: 1, width: size }}>

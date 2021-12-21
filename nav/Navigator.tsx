@@ -11,7 +11,6 @@ import Carousel from '../screens/Carousel'
 import Deck from '../screens/Deck'
 import Grid from '../screens/Grid'
 import Book from '../screens/Book'
-import { transitionConfig } from './transitions'
 const Stack = createNativeStackNavigator();
 
 const screens = {
@@ -34,7 +33,7 @@ export default function Navigator() {
         screenOptions={{ headerShown: false }}
         >
         {Object.entries(screens).map(([k, v]) => {
-          return <Stack.Screen name={k} component={v} />
+          return <Stack.Screen key={`screen-${k}`} name={k} component={v} />
         })}
       </Stack.Navigator>
     </NavigationContainer>

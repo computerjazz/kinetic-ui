@@ -180,13 +180,13 @@ class CardStack extends Component {
           backgroundColor: color,
           borderRadius: 10,
           zIndex,
-          transform: [{
-            perspective: this.perspective,
-            translateY,
-            scaleX: scale,
-            scaleY: scale,
-            rotateX,
-          }]
+          transform: [
+            {perspective: this.perspective},
+            {translateY},
+            {scaleX: scale},
+            {scaleY: scale},
+            {rotateX: concat(rotateX, "deg")},
+          ]
         }}
       >
         <TapGestureHandler

@@ -1,27 +1,14 @@
 import * as React from 'react'
-import { Dimensions, View, StyleSheet, Text } from 'react-native'
-import Animated, { Easing } from 'react-native-reanimated'
-import { PanGestureHandler, State } from 'react-native-gesture-handler'
+import { View, StyleSheet, Text } from 'react-native'
+import Animated from 'react-native-reanimated'
+import { State } from 'react-native-gesture-handler'
 
-import MenuTitle from '../components/MenuTitle'
 
 const {
-  onChange,
-  debug,
-  and,
-  not,
-  set,
-  neq,
   cond,
-  eq,
-  or,
   add,
   multiply,
   greaterThan,
-  lessThan,
-  floor,
-  spring,
-  timing,
   divide,
   block,
   round,
@@ -117,19 +104,19 @@ class Book extends React.Component {
           width: width * 2,
           height,
           zIndex,
-          transform: [{
-            scaleX: 0.8,
-            scaleY: 0.8,
-          }]
+          transform: [
+            {scaleX: 0.8},
+            {scaleY: 0.8},
+          ]
         }}
       >
         <Animated.View style={{
           width: width * 2,
           height,
-          transform: [{
-            perspective: this.perspective,
-            rotateY,
-          }]
+          transform: [
+            {perspective: this.perspective},
+            {rotateY},
+          ]
         }} >
           <Animated.View style={{
             opacity: 0.85,
@@ -166,10 +153,10 @@ class Book extends React.Component {
               ...StyleSheet.absoluteFillObject,
               alignItems: 'center',
               justifyContent: 'center',
-              transform: [{
-                perspective: this.perspective,
-                rotateX: Math.PI / 12,
-              }]
+              transform: [
+                {perspective: this.perspective},
+                {rotateX: Math.PI / 12 + "deg"},
+              ]
             }}>
               {this.cards.map(this.renderCard)}
             </Animated.View>

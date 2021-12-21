@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { Dimensions, SafeAreaView } from 'react-native'
-import Animated from 'react-native-reanimated';
+import Animated, { concat } from 'react-native-reanimated';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 
 const { width, height } = Dimensions.get('window');
@@ -188,11 +188,10 @@ class Card extends Component {
                 borderRadius: 5,
                 zIndex: 100,
                 transform: [
-                  {
-                    perspective: this.perspective,
-                    rotateY: this._y,
-                    rotateX: this._x,
-                  }]
+                  { perspective: this.perspective },
+                  { rotateX: concat(this._x, "deg") },
+                  { rotateY: concat(this._y, "deg") },
+                ]
               }}
             />
             <Animated.View
@@ -207,19 +206,18 @@ class Card extends Component {
                 zIndex: this.translationX,
                 borderRadius: 5,
                 transform: [
-                  {
-                    translateY: 20,
-                    perspective: this.perspective,
-                    rotateY: this._x,
-                    rotateX: this._y,
-                    scale: 1.5,
-                  }]
+                  { translateY: 20 },
+                  { perspective: this.perspective },
+                  { rotateX: concat(this._x, "deg") },
+                  { rotateY: concat(this._y, "deg") },
+                  { scale: 1.5 },
+                ]
               }}
             />
 
-            </SafeAreaView>
-            <BackButton />
-            </Animated.View>
+          </SafeAreaView>
+          <BackButton />
+        </Animated.View>
       </PanGestureHandler>
     )
   }

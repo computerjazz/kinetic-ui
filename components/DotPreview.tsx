@@ -1,7 +1,7 @@
 
 import React, { Component } from 'react';
 import { Dimensions, Image, Text, View, StyleSheet, TouchableOpacity, StatusBar, Platform } from 'react-native';
-import Animated, { Easing } from 'react-native-reanimated';
+import Animated, { EasingNode as Easing } from 'react-native-reanimated';
 import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
 import MenuTitle from '../components/MenuTitle'
 
@@ -211,10 +211,10 @@ class Dot extends Component {
             width: this.dotSize,
             height: this.dotSize,
             zIndex,
-            transform: [{
-              translateX: x.translate,
-              translateY: y.translate,
-            }]
+            transform: [
+              {translateX: x.translate},
+              {translateY: y.translate},
+            ]
           }}
         >
           <Animated.View
@@ -225,10 +225,10 @@ class Dot extends Component {
               height: this.dotSize,
               borderRadius: this.dotSize / 2,
               backgroundColor: color,
-              transform: [{
-                scaleX: 1,
-                scaleY: 1,
-              }]
+              transform: [
+                {scaleX: 1},
+                {scaleY: 1},
+              ]
             }}
           />
  

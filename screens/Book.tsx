@@ -1,5 +1,5 @@
 import React from 'react'
-import { Dimensions, View, StyleSheet, Text, SafeAreaView } from 'react-native'
+import { Dimensions, View, StyleSheet, SafeAreaView } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { PanGestureHandler, State, TapGestureHandler, PanGestureHandlerGestureEvent, PanGestureHandlerStateChangeEvent, TapGestureHandlerStateChangeEvent } from 'react-native-gesture-handler'
 import BackButton from '../components/BackButton'
@@ -349,10 +349,10 @@ class Book extends React.Component<Props> {
         <Animated.View style={{
           width: width * 2,
           height,
-          transform: [{
-            perspective: this.perspective,
-            rotateY,
-          }]
+          transform: [
+            {perspective: this.perspective},
+            {rotateY},
+          ]
         }}
         >
 
@@ -390,10 +390,10 @@ class Book extends React.Component<Props> {
                   ...StyleSheet.absoluteFillObject,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  transform: [{
-                    perspective: this.perspective,
-                    rotateX: Math.PI / 12,
-                  }]
+                  transform: [
+                    {perspective: this.perspective},
+                    {rotateX: Math.PI / 12 + "deg"},
+                  ]
                 }}>
                   {this.cards.map(this.renderCard)}
                 </Animated.View>

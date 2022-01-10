@@ -1,6 +1,6 @@
 # Kinetic UI
 
-A collection of interactive user interface animations using `react-native-reanimated`.
+A collection of interactive animations built with `react-native-reanimated`.
 
 [View this repo as a Snack](https://snack.expo.dev/@computerjazz/kinetic-ui-snack)
 

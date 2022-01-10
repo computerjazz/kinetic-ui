@@ -78,6 +78,7 @@ function timingFill(
     state.position,
     state.time,
     new Value(0),
+    //@ts-ignore
     config.toValue,
     config.duration,
     clock

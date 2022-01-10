@@ -1,6 +1,7 @@
-import { useNavigation } from '@react-navigation/core'
-import React from 'react'
-import { TouchableOpacity, Text, SafeAreaView } from 'react-native'
+import * as React from 'react'
+import { TouchableOpacity, Text, View } from 'react-native'
+import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Props = {
   color?: string,
@@ -8,13 +9,16 @@ type Props = {
 
 const BackButton = ({ color }: Props) => {
   const navigation = useNavigation()
+  const insets = useSafeAreaInsets()
   return (
-      <SafeAreaView 
-        style={{ position: 'absolute' }}
+      <View 
+        style={{ position: 'absolute', marginTop: insets.top + 16 }} 
         >
-          <TouchableOpacity
+          <TouchableOpacity 
             style={{ padding: 20 }}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              navigation.goBack(null)
+            }}   
           >
             <Text 
               style={{ 
@@ -26,7 +30,7 @@ const BackButton = ({ color }: Props) => {
             ←
             </Text>
           </TouchableOpacity>
-      </SafeAreaView>
+      </View>
   )
 }
 

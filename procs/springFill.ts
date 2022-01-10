@@ -16,7 +16,7 @@ const betterSpring = proc(
     damping: Animated.Value<number>,
     mass: Animated.Value<number>,
     stiffness: Animated.Value<number>,
-    overshootClamping: Animated.SpringConfig["overshootClamping"],
+    overshootClamping: boolean | undefined,
     restSpeedThreshold: Animated.Value<number>,
     restDisplacementThreshold: Animated.Value<number>,
     clock: Animated.Clock
@@ -54,6 +54,7 @@ export default function springFill(
     state.position,
     state.time,
     new Value(0),
+    //@ts-ignore
     config.toValue,
     config.damping,
     config.mass,

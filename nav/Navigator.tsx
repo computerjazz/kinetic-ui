@@ -1,17 +1,18 @@
 import React from 'react'
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import Menu from '../screens/Menu'
+import Menu from "../screens/Menu"
 import Dots from '../screens/Dots'
 import CardRotate from '../screens/CardRotate'
-import CardFlip from '../screens/CardFlip'
+import CardFlip from '../screens/CardFlip' 
 import CardStack from '../screens/CardStack'
 import Carousel from '../screens/Carousel'
 import Deck from '../screens/Deck'
-import Grid from '../screens/Grid'
-import Book from '../screens/Book'
-const Stack = createNativeStackNavigator();
+import Grid from '../screens/Grid' 
+import Book from '../screens/Book'               
+
+import { createStackNavigator } from '@react-navigation/stack';
+const Stack = createStackNavigator()
 
 const screens = {
   Menu,
@@ -20,10 +21,10 @@ const screens = {
   Stack: CardStack,
   Carousel,
   Deck,
-  Flip: CardFlip,
+  Flip: CardFlip,   
   Grid,
   Book,
-}
+} 
 
 export default function Navigator() {
   return (
@@ -31,9 +32,15 @@ export default function Navigator() {
       <Stack.Navigator 
         initialRouteName='Menu'
         screenOptions={{ headerShown: false }}
-        >
+        >            
         {Object.entries(screens).map(([k, v]) => {
-          return <Stack.Screen key={`screen-${k}`} name={k} component={v} />
+          return (
+            <Stack.Screen 
+              key={k}
+              name={k}
+              component={v}   
+            />
+          )
         })}
       </Stack.Navigator>
     </NavigationContainer>

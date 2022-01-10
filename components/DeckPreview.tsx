@@ -1,11 +1,15 @@
-import React, { Component } from 'react'
-import { View, Dimensions, Text, Platform, StyleSheet } from 'react-native'
+import React, { Component } from 'react';
+import { View, Dimensions, Text, Platform, StyleSheet } from 'react-native';
 import Animated, { EasingNode as Easing } from 'react-native-reanimated';
-import { PanGestureHandler, State, TapGestureHandler } from 'react-native-gesture-handler';
-import BackButton from '../components/BackButton'
+import {
+  PanGestureHandler,
+  State,
+  TapGestureHandler,
+} from 'react-native-gesture-handler';
+import BackButton from './BackButton';
 import MenuTitle from './MenuTitle';
 
-const isAndroid = Platform.OS === 'android'
+const isAndroid = Platform.OS === 'android';
 
 const {
   onChange,
@@ -41,30 +45,28 @@ const {
   cos,
 } = Animated;
 
-const numCards = 7
-const flingThresh = 500
+const numCards = 7;
+const flingThresh = 500;
 
 class Deck extends Component {
-
   constructor(props) {
-    super(props)
-    const { height, width, clock, focused } = props
-    const tickHeight = height * 0.75
+    super(props);
+    const { height, width, clock, focused } = props;
+    const tickHeight = height * 0.75;
 
-    this.mainHandler = React.createRef()
-    this.translationY = new Value(0)
-    this.prevTrans = new Value(0)
-    this.gestureState = new Value(State.UNDETERMINED)
-    this.perspective = new Value(850)
-    this._mounted = new Value(1)
-
+    this.mainHandler = React.createRef();
+    this.translationY = new Value(0);
+    this.prevTrans = new Value(0);
+    this.gestureState = new Value(State.UNDETERMINED);
+    this.perspective = new Value(850);
+    this._mounted = new Value(1);
 
     this.sprState = {
       finished: new Value(0),
       velocity: new Value(0),
       position: new Value(0),
       time: new Value(0),
-    }
+    };
 
     this.sprConfig = {
       damping: 20,
@@ -74,15 +76,14 @@ class Deck extends Component {
       toValue: new Value(0),
       restSpeedThreshold: 0.001,
       restDisplacementThreshold: 0.001,
-    }
-
+    };
 
     const previewState = {
       position: new Value(height / 2),
       finished: new Value(0),
       time: new Value(0),
       velocity: new Value(0),
-    }
+    };
 
     const previewConfig = {
       toValue: new Value(0),
@@ -92,40 +93,42 @@ class Deck extends Component {
       overshootClamping: false,
       restSpeedThreshold: 0.001,
       restDisplacementThreshold: 0.001,
-    }
+    };
 
     const runClock = [
-      cond(and(focused, clockRunning(clock)), [
-        spring(clock, previewState, previewConfig),
-        cond(previewState.finished, [
-          stopClock(clock),
-          set(previewState.finished, 0),
-          set(previewState.time, 0),
-          set(previewState.velocity, 0),
-          set(previewConfig.toValue, 
-            cond(greaterThan(previewConfig.toValue, 0), 0, height / 2)
+      cond(
+        and(focused, clockRunning(clock)),
+        [
+          spring(clock, previewState, previewConfig),
+          cond(previewState.finished, [
+            stopClock(clock),
+            set(previewState.finished, 0),
+            set(previewState.time, 0),
+            set(previewState.velocity, 0),
+            set(
+              previewConfig.toValue,
+              cond(greaterThan(previewConfig.toValue, 0), 0, height / 2)
             ),
-          startClock(clock),
-        ])
-      ], [
-        startClock(clock),
-      ]),
-      previewState.position
-    ]
+            startClock(clock),
+          ]),
+        ],
+        [startClock(clock)]
+      ),
+      previewState.position,
+    ];
 
     const ry = Animated.interpolateNode(runClock, {
       inputRange: [0, height],
       outputRange: [0, 1],
-    })
+    });
 
     this.cards = [...Array(numCards)].fill(0).map((d, i, arr) => {
-      const colorMultiplier = 255 / (arr.length - 1)
-      const index = new Value(i)
-      const size = width * 0.75
-      const gestureState = new Value(0)
-      const midpoint = (arr.length - 1) / 2
-      const maxIndex = arr.length - 1
-
+      const colorMultiplier = 255 / (arr.length - 1);
+      const index = new Value(i);
+      const size = width * 0.75;
+      const gestureState = new Value(0);
+      const midpoint = (arr.length - 1) / 2;
+      const maxIndex = arr.length - 1;
 
       // 0: 10
       // 1: 5
@@ -136,36 +139,38 @@ class Deck extends Component {
       //
 
       // const maxY = height / (i + 1.75)
-      const distFromMid = midpoint - i
-      const ratio = distFromMid / midpoint
-      const multiplier = ratio
-      const maxY = multiplier * (height / 5)
-      const scaleMultiplier = 1 - (i * (1 / arr.length))
-
+      const distFromMid = midpoint - i;
+      const ratio = distFromMid / midpoint;
+      const multiplier = ratio;
+      const maxY = multiplier * (height / 5);
+      const scaleMultiplier = 1 - i * (1 / arr.length);
 
       const iy = Animated.interpolateNode(ry, {
         inputRange: [-0.5, 0, 0.5],
         outputRange: [-maxY, i * 5, maxY],
-      })
+      });
 
-      const xOffset = width / 4
+      const xOffset = width / 4;
       const ix = multiply(
         abs(add(multiply(ry, cos(ratio), -xOffset), multiply(ry, xOffset))),
-        -1)
+        -1
+      );
 
       const rotateZ = Animated.interpolateNode(ry, {
         inputRange: [0, 1],
-        outputRange: [0, multiplier * Math.PI / 2],
-      })
+        outputRange: [0, (multiplier * Math.PI) / 2],
+      });
 
       const scale = Animated.interpolateNode(ry, {
         inputRange: [-0.5, 0, 0.5],
         outputRange: [1, 1 + scaleMultiplier * 0.1, 1],
-      })
+      });
 
-      const colorIndex = i
+      const colorIndex = i;
       return {
-        color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(128 - colorIndex * colorMultiplier)}, ${255 - (colorIndex * colorMultiplier)}, 0.9)`,
+        color: `rgba(${colorIndex * colorMultiplier}, ${Math.abs(
+          128 - colorIndex * colorMultiplier
+        )}, ${255 - colorIndex * colorMultiplier}, 0.9)`,
         scale,
         zIndex: -i,
         translateY: iy,
@@ -186,26 +191,28 @@ class Deck extends Component {
           toValue: new Value(1),
           duration: 250,
           easing: Easing.inOut(Easing.ease),
-        }
-      }
-    })
+        },
+      };
+    });
   }
 
-
-  renderCard = ({
-    color,
-    scale,
-    translateY,
-    translateX,
-    zIndex,
-    size,
-    rotateZ,
-    gestureState,
-    index,
-    clock,
-    state,
-    config,
-  }, i) => {
+  renderCard = (
+    {
+      color,
+      scale,
+      translateY,
+      translateX,
+      zIndex,
+      size,
+      rotateZ,
+      gestureState,
+      index,
+      clock,
+      state,
+      config,
+    },
+    i
+  ) => {
     const runClock = block([
       cond(clockRunning(clock), [
         timing(clock, state, config),
@@ -218,19 +225,18 @@ class Deck extends Component {
         ]),
       ]),
       state.position,
-    ])
+    ]);
 
     const ic = Animated.interpolateNode(runClock, {
       inputRange: [0, 0.5, 1],
       outputRange: [0, 0.1, 0],
-    })
+    });
 
-    const scaleXY = add(scale, ic)
+    const scaleXY = add(scale, ic);
 
     return (
       <Animated.View
         key={`card-${i}`}
-
         style={{
           alignItems: 'center',
           justifyContent: 'center',
@@ -242,57 +248,59 @@ class Deck extends Component {
           zIndex,
           opacity: 0.8,
           transform: [
-            {translateY},
-            {translateX},
-            {scaleX: scaleXY},
-           { scaleY: scaleXY},
-            {rotateZ},
-          ]
-        }}
-      >
-        <Animated.View style={{
-          flex: 1,
-          width: size,
-          alignItems: 'flex-end',
-          justifyContent: 'flex-end',
-          padding: 10
+            { translateY },
+            { translateX },
+            { scaleX: scaleXY },
+            { scaleY: scaleXY },
+            { rotateZ: Animated.concat(rotateZ, "rad") },
+          ],
         }}>
-          <Text style={{
-            color: 'seashell',
-            fontSize: 30,
-            fontWeight: 'bold',
+        <Animated.View
+          style={{
+            flex: 1,
+            width: size,
+            alignItems: 'flex-end',
+            justifyContent: 'flex-end',
+            padding: 10,
           }}>
+          <Text
+            style={{
+              color: 'seashell',
+              fontSize: 30,
+              fontWeight: 'bold',
+            }}>
             {}
           </Text>
         </Animated.View>
       </Animated.View>
-    )
-  }
+    );
+  };
 
-  velocity = new Value(0)
+  velocity = new Value(0);
 
   render() {
     return (
-      <View style={{
-        flex: 1,
-        alignItems: 'center',
-        width: '100%',
-        padding: 30,
-        overflow: 'hidden',
-        backgroundColor: 'seashell',
-        borderRadius: this.props.width,
-      }}>
-        <Animated.View style={{
+      <View
+        style={{
           flex: 1,
           alignItems: 'center',
-          justifyContent: 'center',
+          width: '100%',
+          padding: 30,
+          overflow: 'hidden',
+          backgroundColor: 'seashell',
+          borderRadius: this.props.width,
         }}>
+        <Animated.View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
           {this.cards.map(this.renderCard)}
         </Animated.View>
       </View>
-
-    )
+    );
   }
 }
 
-export default Deck
+export default Deck;

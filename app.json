@@ -1,12 +1,7 @@
 {
   "expo": {
-    "name": "kinetic-ui",
-    "slug": "kinetic-ui",
-    "privacy": "public",
-    "platforms": [
-      "ios",
-      "android"
-    ],
+    "name": "kinetic-ui-snack",
+    "slug": "snack-c404294e-9a4e-4ec6-b11a-ce43c5cee69e",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,6 +19,14 @@
     "ios": {
       "supportsTablet": true
     },
-    "description": ""
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
   }
 }

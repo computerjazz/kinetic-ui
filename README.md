@@ -1,11 +1,11 @@
-# Sample Snack app
+# Kinetic UI
 
-Open the `App.js` file to start writing some code. You can preview the changes directly on your phone or tablet by scanning the **QR code** or use the iOS or Android emulators. When you're done, click **Save** and share the link!
+A collection of interactive user interface animations using `react-native-reanimated`.
 
-When you're ready to see everything that Expo provides (or if you want to use your own editor) you can **Download** your project and use it with [expo-cli](https://docs.expo.io/get-started/installation).
-
-All projects created in Snack are publicly available, so you can easily share the link to this project via link, or embed it on a web page with the `<>` button.
-
-If you're having problems, you can tweet to us [@expo](https://twitter.com/expo) or ask in our [forums](https://forums.expo.io/c/snack).
-
-Snack is Open Source. You can find the code on the [GitHub repo](https://github.com/expo/snack).
+<img width="100" alt="book" src="https://user-images.githubusercontent.com/6730148/148821243-4ba02863-2cac-4932-b187-27820fb8ca70.gif" />
+<img width="100" alt="carousel" src="https://user-images.githubusercontent.com/6730148/148821316-f975dd2f-1f66-4a6b-a800-3a8835fc5307.gif" />
+<img width="100" alt="deck" src="https://user-images.githubusercontent.com/6730148/148821330-eb1935bf-dd88-448c-bf1d-50f18c814d5f.gif" />
+<img width="100" alt="dots" src="https://user-images.githubusercontent.com/6730148/148821335-d64cceda-c219-4b56-8d1c-2207f5b6aa13.gif" />
+<img width="100" alt="flip" src="https://user-images.githubusercontent.com/6730148/148821341-91b6f12e-f2ec-4ef1-af58-15d38a3326a5.gif" />
+<img width="100" alt="grid" src="https://user-images.githubusercontent.com/6730148/148821343-9ed7b0a6-6328-4dd1-9176-f77829c5089a.gif" />
+<img width="100" alt="stack" src="https://user-images.githubusercontent.com/6730148/148821346-9b80e986-6a19-4524-8c65-743e57c5fc11.gif" />
